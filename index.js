@@ -5,7 +5,7 @@ import Database from "better-sqlite3";
   const db = new Database('eventos.db');
   db.prepare(`
     CREATE TABLE IF NOT EXISTS eventos (
-      id TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       collection TEXT,
       type TEXT,
       city TEXT,
@@ -17,76 +17,66 @@ import Database from "better-sqlite3";
   `).run();
 
   const insertEvent = db.prepare(`
-    INSERT OR IGNORE INTO eventos
-      (id, collection, type, city, street, severity, reportBy, confidence)
+    INSERT INTO eventos
+      (collection, type, city, street, severity, reportBy, confidence)
     VALUES
-      (@id, @collection, @type, @city, @street, @severity, @reportBy, @confidence)
+      (@collection, @type, @city, @street, @severity, @reportBy, @confidence)
   `);
-
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
 
   let totalEvents = 0;
   const TARGET = 10000;
-  const INTERVAL_MS = 1000; 
+  const INTERVALO = 10;
+  let shouldStop = false;
 
-  page.on('request', async request => {
-    if (request.url().includes('georss')) {
+  for (const browser of [await puppeteer.launch({ headless: true })]) {
+    const page = await browser.newPage();
+
+    page.on('request', async request => {
+      if (!request.url().includes('georss')) return;
       try {
-        const res = await fetch(request.url());
-        const data = await res.json();
+        const data = await (await fetch(request.url())).json();
+        const items = [
+          ...data.alerts.map(a => ({
+            collection: 'alertas', type: a.type, city: a.city, street: a.street,
+            severity: a.severity, reportBy: null, confidence: null
+          })),
+          ...data.jams.map(j => ({
+            collection: 'atascos', type: j.type, city: null, street: j.street,
+            severity: null, reportBy: j.reportBy, confidence: j.confidence
+          }))
+        ];
 
-        const alertas = data.alerts.map(alert => ({
-          id: alert.id,
-          collection: 'alertas',
-          type: alert.type,
-          city: alert.city,
-          street: alert.street,
-          severity: alert.severity,
-          reportBy: null,
-          confidence: null
-        }));
-
-        const jams = data.jams.map(jam => ({
-          id: jam.id,
-          collection: 'atascos',
-          type: jam.type,
-          city: null,
-          street: jam.street,
-          severity: null,
-          reportBy: jam.reportBy,
-          confidence: jam.confidence
-        }));
-
-        for (const e of [...alertas, ...jams]) {
-          const info = {
-            id: e.id,
+        for (const e of items) {
+          if (totalEvents >= TARGET) {
+            shouldStop = true;
+            break;
+          }
+          insertEvent.run({
             collection: e.collection,
-            type: e.type,
-            city: e.city || '',
-            street: e.street,
-            severity: e.severity || '',
-            reportBy: e.reportBy || '',
-            confidence: e.confidence
-          };
-          const result = insertEvent.run(info);
-          if (result.changes > 0) totalEvents++;
+            type:       e.type,
+            city:       e.city    || '',
+            street:     e.street,
+            severity:   e.severity || 0,
+            reportBy:   e.reportBy || '',
+            confidence: e.confidence || 0
+          });
+          totalEvents++;
         }
 
-        console.log(`Eventos insertados: ${totalEvents} / ${TARGET}`);
+        console.log(`Insertados ${totalEvents}/${TARGET}`);
       } catch (err) {
-        console.error('Error:', err);
+        console.error(err);
       }
+    });
+
+    await page.goto('https://www.waze.com/es-419/live-map/', { waitUntil: 'networkidle2' });
+
+    while (totalEvents < TARGET) {
+      await page.reload({ waitUntil: 'networkidle2' });
+      await new Promise(r => setTimeout(r, INTERVALO));
     }
-  });
 
-  await page.goto('https://www.waze.com/es-419/live-map/', { waitUntil: 'networkidle2' });
-
-  while (totalEvents < TARGET) {
-    await page.reload({ waitUntil: 'networkidle2' });
-    await new Promise(res => setTimeout(res, INTERVAL_MS));
+    console.log('10 000 eventos creados');
+    await browser.close();
   }
-
-  console.log('10000 eventos creados');
-  await browser.close();
 })();
