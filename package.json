@@ -1,0 +1,16 @@
+{
+  "name": "waze-project",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "puppeteer": "^24.7.0"
+  }
+}
