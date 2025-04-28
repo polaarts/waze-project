@@ -2,7 +2,7 @@ import puppeteer from "puppeteer";
 import Database from "better-sqlite3";
 
 (async () => {
-  const db = new Database('eventos.db');
+  const db = new Database('/db/eventos.db');
   db.prepare(`
     CREATE TABLE IF NOT EXISTS eventos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +28,9 @@ import Database from "better-sqlite3";
   const INTERVALO = 10;
   let shouldStop = false;
 
-  for (const browser of [await puppeteer.launch({ headless: true })]) {
+  for (const browser of [await puppeteer.launch({ headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+   })]) {
     const page = await browser.newPage();
 
     page.on('request', async request => {
