@@ -1,15 +1,15 @@
 services:
   scraper:
     build:
-      context: ./cache/scraper
+      context: ./cache/node
       dockerfile: Dockerfile
     volumes:
-      - ./cache/scraper:/scraper
+      - ./cache/node:/node
       - ./db:/db
 
-  # redis:
-  #   image: redis:latest
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - ./cache/redis:/redis
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./cache/redis:/redis

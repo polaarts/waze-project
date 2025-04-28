@@ -1,14 +1,19 @@
-const Redis = require('ioredis');
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const fs = require('fs');
+import Redis from 'ioredis';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const DB_PATH = './eventos.db';
 async function connectToDatabase() {
   try {
     const db = await open({
       filename: DB_PATH,
-      driver: sqlite3.Database
+      driver: sqlite3.verbose().Database
     });
     console.log('Successfully connected to SQLite database');
     return db;
@@ -18,7 +23,7 @@ async function connectToDatabase() {
   }
 }
 
-async function main() {
+export async function cache() {
     let timesQueryd = 0;
     let misses = 0;
     let hits = 0;
@@ -58,26 +63,25 @@ async function main() {
     }
     console.log(`Para tamaño infinito, distribucion uniforme se tienen \n Hits: ${hits}, Misses: ${misses}, Total queries: ${timesQueryd}`);
 
-    // tamaño infinito, distribucion de pareto
+    // tamaño infinito, distribucion de pareto
     
 
 
-    // tamaño fijo 1mb, distribucion uniforme, lru
+    // tamaño fijo 1mb, distribucion uniforme, lru
 
-    // tamaño fijo 1mb, distribucion uniforme, random
+    // tamaño fijo 1mb, distribucion uniforme, random
 
-    // tamaño fijo 1mb, distribucion pareto, lru
+    // tamaño fijo 1mb, distribucion pareto, lru
     
-    // tamaño fijo 1mb, distribucion pareto, random
+    // tamaño fijo 1mb, distribucion pareto, random
 
-    // tamaño fijo 50mb, distribucion uniforme, lru
+    // tamaño fijo 50mb, distribucion uniforme, lru
 
-    // tamaño fijo 50mb, distribucion uniforme, random
+    // tamaño fijo 50mb, distribucion uniforme, random
 
-    // tamaño fijo 50mb, distribucion pareto, lru
+    // tamaño fijo 50mb, distribucion pareto, lru
     
-    // tamaño fijo 50mb, distribucion pareto, random
+    // tamaño fijo 50mb, distribucion pareto, random
 
 
-  }
-  main();
+}

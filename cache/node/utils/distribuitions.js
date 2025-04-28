@@ -1,7 +1,7 @@
 // Required packages
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const fs = require('fs');
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import fs from 'fs';
 
 // Configuration
 const DB_PATH = './eventos.db'; // Update with your actual database path
@@ -11,7 +11,7 @@ async function connectToDatabase() {
   try {
     const db = await open({
       filename: DB_PATH,
-      driver: sqlite3.Database
+      driver: sqlite3.verbose().Database
     });
     console.log('Successfully connected to SQLite database');
     return db;
@@ -277,7 +277,7 @@ async function simulateLongTailCacheTest() {
 }
 
 // Export functions for use in other modules
-module.exports = {
+export {
   connectToDatabase,
   fetchAllWazeData,
   fetchLongTailDistributionData,
@@ -287,9 +287,3 @@ module.exports = {
   simulateLongTailCacheTest
 };
 
-// Uncomment to run an example
-retrieveDataForCacheTesting().then(report => {
-  console.log('Cache test data retrieved successfully');
-}).catch(err => {
-  console.error('Failed to retrieve cache test data:', err);
-});
