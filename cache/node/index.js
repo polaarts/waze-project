@@ -1,6 +1,6 @@
-import { retrieveDataForCacheTesting } from "./utils/distribuitions";
-import { scrapeWazeEvents } from "./utils/scrape";
-import { cache } from "./utils/cache";
+import { retrieveDataForCacheTesting } from "./utils/distributions.js";
+import { scrapeWazeEvents } from "./utils/scrape.js";
+import { cache } from "./utils/cache.js";
 
 await scrapeWazeEvents({ DB_PATH: '/db/eventos.db', targetEvents: 10000 });
 
@@ -10,4 +10,4 @@ await retrieveDataForCacheTesting().then(report => {
   console.error('Failed to retrieve cache test data:', err);
 });
 
-await cache();
+// await cache();
