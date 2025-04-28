@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import fs from 'fs';
 
-const DB_PATH = './eventos.db';
+const DB_PATH = '/db/eventos.db';
 
 async function connectToDatabase() {
   try {
