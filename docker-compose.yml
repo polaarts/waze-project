@@ -6,6 +6,7 @@ services:
     volumes:
       - ./cache/node:/node
       - ./db:/db
+      - ./output:/output
 
   redis:
     image: redis:latest
