@@ -59,7 +59,7 @@ export async function LRU() {
       data = JSON.parse(raw);
     } catch (err) {
       console.error(`Error leyendo o parseando ${dataFilePath}:`, err);
-      process.exit(1);
+      throw new Error(`Failed to read or parse file ${dataFilePath}: ${err.message}`);
     }
 
     const client = await createClient({
