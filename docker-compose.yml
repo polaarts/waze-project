@@ -1,12 +1,12 @@
 services:
-  scraper:
-    build:
-      context: ./cache/node
-      dockerfile: Dockerfile
-    volumes:
-      - ./cache/node:/node
-      - ./db:/db
-      - ./output:/output
+  # scraper:
+  #   build:
+  #     context: ./cache/node
+  #     dockerfile: Dockerfile
+  #   volumes:
+  #     - ./cache/node:/node
+  #     - ./db:/db
+  #     - ./output:/output
   redisInfinito: 
     container_name: redisInfinito
     image: redis:latest
@@ -16,23 +16,23 @@ services:
     container_name: redis1mblru
     image: redis:latest
     ports:
-      - 6380:6380
-    command: redis-server --port 6380 --maxmemory 1mb --maxmemory-policy allkeys-lru
+      - 6380:6379
+    command: redis-server --maxmemory 1mb --maxmemory-policy allkeys-lru
   redis1mbran:
     container_name: redis1mbran
     image: redis:latest
     ports:
-      - 6381:6381
-    command: redis-server --port 6381 --maxmemory 1mb --maxmemory-policy allkeys-random
+      - 6381:6379
+    command: redis-server --maxmemory 1mb --maxmemory-policy allkeys-random
   redis2mblru:
     container_name: redis2mblru
     image: redis:latest
     ports:
-      - 6382:6382
-    command: redis-server --port 6382 --maxmemory 2mb --maxmemory-policy allkeys-lru
+      - 6382:6379
+    command: redis-server --maxmemory 2mb --maxmemory-policy allkeys-lru
   redis2mbran:
     container_name: redis2mbran
     image: redis:latest
     ports:
-      - 6383:6383
-    command: redis-server --port 6383 --maxmemory 2mb --maxmemory-policy allkeys-random
+      - 6383:6379
+    command: redis-server --maxmemory 2mb --maxmemory-policy allkeys-random

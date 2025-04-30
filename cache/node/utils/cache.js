@@ -1,87 +1,150 @@
-import Redis from 'ioredis';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import { createClient } from 'redis'; 
 import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+export async function cacheLRU() {
+  // Configuración
+  const MAX_KEYS = 150; // Límite de llaves en caché
+  const LongTailData = '../../../output/long_tail_distribution.json';
+  const EvenData = '../../../output/even_distribution.json';
+  const redisPort = 6379;
 
-const DB_PATH = './eventos.db';
-async function connectToDatabase() {
-  try {
-    const db = await open({
-      filename: DB_PATH,
-      driver: sqlite3.verbose().Database
-    });
-    console.log('Successfully connected to SQLite database');
-    return db;
-  } catch (error) {
-    console.error('Database connection error:', error);
-    throw error;
+  // Clase para implementar la política LRU
+  class LRUCache {
+    constructor(capacity) {
+      this.capacity = capacity;
+      this.cache = new Map(); // Usamos Map para mantener el orden de inserción/actualización
+    }
+
+    // Verifica si una clave existe
+    has(key) {
+      return this.cache.has(key);
+    }
+
+    // Obtiene un valor y lo mueve al final (más reciente)
+    get(key) {
+      if (!this.cache.has(key)) return null;
+      
+      // Remover y re-insertar para actualizar la posición
+      const value = this.cache.get(key);
+      this.cache.delete(key);
+      this.cache.set(key, value);
+      
+      return value;
+    }
+
+    // Añade o actualiza un valor
+    put(key, value) {
+      // Si la clave ya existe, la removemos primero
+      if (this.cache.has(key)) {
+        this.cache.delete(key);
+      }
+      // Si estamos en capacidad, eliminamos la clave menos usada recientemente
+      else if (this.cache.size >= this.capacity) {
+        // La clave menos usada recientemente es la primera en el Map
+        const lruKey = this.cache.keys().next().value;
+        this.cache.delete(lruKey);
+      }
+      
+      // Insertar la nueva clave (irá al final del Map)
+      this.cache.set(key, value);
+    }
+
+    // Elimina una clave específica
+    delete(key) {
+      this.cache.delete(key);
+    }
+
+    // Obtiene todas las claves como array
+    keys() {
+      return Array.from(this.cache.keys());
+    }
+
+    // Obtiene el tamaño actual
+    get size() {
+      return this.cache.size;
+    }
   }
-}
 
-export async function cache() {
-    let timesQueryd = 0;
-    let misses = 0;
+  // Función para manejar una distribución con política LRU
+  async function handleDistributionLRU(dataFilePath, distributionName) {
+    let data;
+    try {
+      const raw = fs.readFileSync(dataFilePath, 'utf-8');
+      data = JSON.parse(raw);
+    } catch (err) {
+      console.error(`Error leyendo o parseando ${dataFilePath}:`, err);
+      process.exit(1);
+    }
+
+    // Crear cliente Redis
+    const client = await createClient({
+      url: `redis://localhost:${redisPort}`
+    }).on('error', err => console.log('Redis Client Error', err)).connect();
+    
+    await client.flushDb();
+    console.log(`Conectado a Redis en puerto ${redisPort} (Política LRU)`);
+    
+    // Inicializar caché LRU
+    const lruCache = new LRUCache(MAX_KEYS);
     let hits = 0;
-
-    let redis;
-    try {
-    redis = new Redis();
-    }
-    catch (error) {
-        console.error('Redis connection error:', error);
-        throw error;
-    }
-    const db = await connectToDatabase();
-    let calentado;
-    try {
-        calentado = await db.all(`SELECT * FROM eventos limit 1600`);
-
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        throw error;
-    }
-    // tamaño infinito, distribucion uniforme
-    for (let i = 0; i < calentado.length; i++) {
-        redis.set(`${calentado[i].id}`, JSON.stringify(calentado[i])).catch(console.error);
-    }
-
-    const data = JSON.parse(fs.readFileSync('waze_even_data.json', 'utf8'));
-    for (const e of data.records) {
-        const value = await redis.get(`${e.id}`);
-        if (value) {
-            hits++;
-        } else {
-            redis.set(`${e.id}`, JSON.stringify(e)).catch(console.error);
-            misses++;
+    let misses = 0;
+    
+    // Mientras queden elementos en el array
+    while (data.length > 0) {
+      // Seleccionar un índice aleatorio
+      const idx = Math.floor(Math.random() * data.length);
+      const item = data.splice(idx, 1)[0];
+      const key = item.id;
+      
+      // Primero verificamos en nuestro seguimiento LRU
+      if (lruCache.has(key)) {
+        // Actualizar la posición en LRU para marcar como recientemente usado
+        lruCache.get(key);
+        hits++;
+        
+        // Verificamos que también esté en Redis (debería estar siempre)
+        const exists = await client.get(`${key}`);
+        if (!exists) {
+          // Inconsistencia, actualizamos Redis
+          await client.set(`${key}`, JSON.stringify(item));
         }
-        timesQueryd++;
+      } else {
+        misses++;
+        
+        // Si la caché LRU está llena, eliminamos la clave menos usada recientemente
+        if (lruCache.size >= MAX_KEYS) {
+          // La clave menos usada recientemente es la primera en el Map
+          const lruKey = lruCache.keys()[0];
+          
+          // Eliminar de Redis
+          await client.del(`${lruKey}`);
+          
+          // Ya se eliminará de la caché LRU al hacer el put
+        }
+        
+        // Insertar en Redis y en nuestra caché LRU
+        await client.set(`${key}`, JSON.stringify(item));
+        lruCache.put(key, true); // Solo guardamos la existencia en nuestra caché LRU
+      }
     }
-    console.log(`Para tamaño infinito, distribucion uniforme se tienen \n Hits: ${hits}, Misses: ${misses}, Total queries: ${timesQueryd}`);
-
-    // tamaño infinito, distribucion de pareto
     
-
-
-    // tamaño fijo 1mb, distribucion uniforme, lru
-
-    // tamaño fijo 1mb, distribucion uniforme, random
-
-    // tamaño fijo 1mb, distribucion pareto, lru
+    console.log(`\n--- Resultado de la simulación Distribución ${distributionName} con política LRU ---`);
+    console.log(`Total de operaciones: ${hits + misses}`);
+    console.log(`Hits: ${hits}`);
+    console.log(`Misses: ${misses}`);
+    console.log(`Hit Rate: ${(hits / (hits + misses) * 100).toFixed(2)}%`);
+    console.log(`Total de llaves en caché: ${lruCache.size}`);
     
-    // tamaño fijo 1mb, distribucion pareto, random
+    await client.flushDb();
+    await client.disconnect();
+    console.log('Desconectado de Redis.');
+  }
 
-    // tamaño fijo 50mb, distribucion uniforme, lru
-
-    // tamaño fijo 50mb, distribucion uniforme, random
-
-    // tamaño fijo 50mb, distribucion pareto, lru
-    
-    // tamaño fijo 50mb, distribucion pareto, random
-
-
+  // Procesar distribución de cola larga con LRU
+  await handleDistributionLRU(LongTailData, "cola larga");
+  
+  // Procesar distribución uniforme con LRU
+  await handleDistributionLRU(EvenData, "uniforme");
 }
+
+cacheLRU();

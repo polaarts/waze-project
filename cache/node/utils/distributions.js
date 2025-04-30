@@ -1,42 +1,44 @@
 import sqlite3 from 'sqlite3';
 import fs from 'fs';
 
-let DB_PATH = '/db/eventos.db'
+let DB_PATH = '../../../db/eventos.db'
 let db = new sqlite3.Database(DB_PATH);
 
 export async function retrieveDataForCacheTesting() {
-  db.all('SELECT * FROM eventos ORDER by RANDOM();', [], (err, rows) => {
+  db.all('SELECT * FROM eventos ORDER by RANDOM() LIMIT 10000;', [], (err, rows) => {
     if (err) {
       throw err;
     }
-    console.log('estoy vivo');
+    // console.log('estoy vivo');
     
     const queries = rows;
 
+    console.log(queries.length);
     
-    const alpha = 1.5; 
-    const paretoWeights = queries.map((q, index) => ({
-      query: q,
-      weight: 1 / Math.pow(index + 1, alpha)
+    const pareto = queries.map((q, i) => ({
+      query : q,
+      weight: 1 / Math.pow(i + 1, 2.2)
     }));
-
-    const totalWeight = paretoWeights.reduce((sum, q) => sum + q.weight, 0);
-    paretoWeights.forEach(q => {
-      q.instances = Math.floor((q.weight / totalWeight) * 10000); // Escala a 10,000 instancias
+  
+    // Normalizar y asignar instancias
+    const totalWeight = pareto.reduce((sum, x) => sum + x.weight, 0);
+    pareto.forEach(x => {
+      x.instances = Math.floor((x.weight / totalWeight) * 50000);
     });
-
-    let finalList = [];
-    paretoWeights.forEach(q => {
-      for (let i = 0; i < q.instances; i++) {
-        finalList.push(q.query);
+  
+    // Expandir a lista final
+    const finalList = [];
+    pareto.forEach(x => {
+      for (let i = 0; i < x.instances; i++) {
+        finalList.push(x.query);
       }
     });  
 
-    fs.writeFileSync('/output/long_tail_distribution.json', JSON.stringify(finalList, null, 2));
+    fs.writeFileSync('../../../output/long_tail_distribution.json', JSON.stringify(finalList, null, 2));
     console.log('Archivo generado con éxito: output.json');
 
     
-    const InstancesPerQuery = Math.floor(10000 / 500);
+    const InstancesPerQuery = 128;
 
     const evenWeightedRows = rows.map((row) => {
       return {
@@ -54,7 +56,7 @@ export async function retrieveDataForCacheTesting() {
   });
 
   // Save even distribution to a new file
-  fs.writeFileSync('/output/even_distribution.json', JSON.stringify(evenFinalList, null, 2));
+  fs.writeFileSync('../../../output/even_distribution.json', JSON.stringify(evenFinalList, null, 2));
   console.log('Archivo generado con distribución uniforme: output_even.json');
 
 
@@ -62,3 +64,4 @@ export async function retrieveDataForCacheTesting() {
 
   db.close();
 }
+retrieveDataForCacheTesting();
