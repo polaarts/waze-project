@@ -1,38 +1,15 @@
 services:
-  # scraper:
-  #   build:
-  #     context: ./cache/node
-  #     dockerfile: Dockerfile
-  #   volumes:
-  #     - ./cache/node:/node
-  #     - ./db:/db
-  #     - ./output:/output
-  redisInfinito: 
-    container_name: redisInfinito
+  scraper:
+    build:
+      context: ./cache
+      dockerfile: Dockerfile
+    volumes:
+      - ./cache:/cache
+      - ./db:/db
+  redis:
+    container_name: redis
     image: redis:latest
     ports:
       - 6379:6379
-  redis1mblru:
-    container_name: redis1mblru
-    image: redis:latest
-    ports:
-      - 6380:6379
-    command: redis-server --maxmemory 1mb --maxmemory-policy allkeys-lru
-  redis1mbran:
-    container_name: redis1mbran
-    image: redis:latest
-    ports:
-      - 6381:6379
-    command: redis-server --maxmemory 1mb --maxmemory-policy allkeys-random
-  redis2mblru:
-    container_name: redis2mblru
-    image: redis:latest
-    ports:
-      - 6382:6379
-    command: redis-server --maxmemory 2mb --maxmemory-policy allkeys-lru
-  redis2mbran:
-    container_name: redis2mbran
-    image: redis:latest
-    ports:
-      - 6383:6379
-    command: redis-server --maxmemory 2mb --maxmemory-policy allkeys-random
+    volumes:
+      - ./cache/data:/cache/data
