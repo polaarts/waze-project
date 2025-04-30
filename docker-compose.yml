@@ -6,10 +6,33 @@ services:
     volumes:
       - ./cache/node:/node
       - ./db:/db
-
-  redis:
+      - ./output:/output
+  redisInfinito: 
+    container_name: redisInfinito
     image: redis:latest
     ports:
-      - "6379:6379"
-    volumes:
-      - ./cache/redis:/redis
+      - 6379:6379
+  redis1mblru:
+    container_name: redis1mblru
+    image: redis:latest
+    ports:
+      - 6380:6380
+    command: redis-server --port 6380 --maxmemory 1mb --maxmemory-policy allkeys-lru
+  redis1mbran:
+    container_name: redis1mbran
+    image: redis:latest
+    ports:
+      - 6381:6381
+    command: redis-server --port 6381 --maxmemory 1mb --maxmemory-policy allkeys-random
+  redis2mblru:
+    container_name: redis2mblru
+    image: redis:latest
+    ports:
+      - 6382:6382
+    command: redis-server --port 6382 --maxmemory 2mb --maxmemory-policy allkeys-lru
+  redis2mbran:
+    container_name: redis2mbran
+    image: redis:latest
+    ports:
+      - 6383:6383
+    command: redis-server --port 6383 --maxmemory 2mb --maxmemory-policy allkeys-random
