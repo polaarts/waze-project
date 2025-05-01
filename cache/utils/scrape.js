@@ -1,6 +1,15 @@
 import puppeteer from "puppeteer";
 import Database from "better-sqlite3";
 
+/**
+ * 
+ * @param {Object} options
+ * @param {string} options.DB_PATH
+ * @param {number} options.targetEvents 
+ * @param {number} options.interval 
+ * @param {boolean} options.headless 
+ * @returns {Promise<number>}
+ */
 export default async function scrape({
     DB_PATH = '/db/eventos.db',
     targetEvents = 10000,
@@ -8,18 +17,19 @@ export default async function scrape({
     headless = true
 } = {}) {
     const db = new Database(DB_PATH);
+    
     db.prepare(`
         CREATE TABLE IF NOT EXISTS eventos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            collection TEXT,
-            type TEXT,
-            city TEXT,
-            street TEXT,
-            severity INTEGER,
-            reportBy TEXT,
-            confidence INTEGER,
-            eventId TEXT,
-            UNIQUE(eventId)
+            collection TEXT,      -- Tipo de colección (alertas o atascos)
+            type TEXT,            -- Tipo específico de evento
+            city TEXT,            -- Ciudad donde ocurre el evento
+            street TEXT,          -- Calle donde ocurre el evento
+            severity INTEGER,     -- Nivel de gravedad (para alertas)
+            reportBy TEXT,        -- Quién reportó el evento (para atascos)
+            confidence INTEGER,   -- Nivel de confianza del reporte (para atascos)
+            eventId TEXT,         -- Identificador único del evento
+            UNIQUE(eventId)       -- Garantiza que no haya duplicados
         )
     `).run();
 
@@ -35,6 +45,7 @@ export default async function scrape({
     let shouldStop = false;
     
     console.log('Se ha iniciado la recolección de eventos de Waze');
+    
     const browser = await puppeteer.launch({ 
         headless, 
         args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -42,13 +53,13 @@ export default async function scrape({
     
     try {
         const page = await browser.newPage();
+        // Set para rastrear IDs ya procesados y evitar duplicados
         const processedIds = new Set();
 
         page.on('request', async request => {
             if (!request.url().includes('georss')) return;
             try {
                 const data = await (await fetch(request.url())).json();
-                
                 const items = [
                     ...data.alerts.map(a => ({
                         collection: 'alertas', 
@@ -113,6 +124,7 @@ export default async function scrape({
 
         await page.goto('https://www.waze.com/es-419/live-map/', { waitUntil: 'networkidle2' });
 
+        // Refresca la página periódicamente para obtener nuevos eventos
         while (totalEvents < targetEvents && !shouldStop) {
             await page.reload({ waitUntil: 'networkidle2' });
             await new Promise(r => setTimeout(r, interval * 1000));

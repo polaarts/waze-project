@@ -1,22 +1,44 @@
 import { createClient } from 'redis'; 
 import fs from 'fs';
 
+/**
+ * Implementa la simulación de la política de caché LRU (Least Recently Used - Menos Recientemente Usado)
+ * Simula el comportamiento del caché contra distribuciones de cola larga y uniformes
+ */
 export async function LRU() {
   const MAX_KEYS = 150;
   const LongTailData = '/cache/data/long_tail_distribution.json';
   const EvenData = '/cache/data/even_distribution.json';
   const redisPort = 6379;
 
+  /**
+   * Implementación de caché LRU utilizando la estructura Map
+   * El Map mantiene un orden de inserción, lo que ayuda con la implementación LRU
+   */
   class LRUCache {
+    /**
+     * Crea un nuevo caché LRU con la capacidad especificada
+     * @param {number} capacity
+     */
     constructor(capacity) {
       this.capacity = capacity;
-      this.cache = new Map(); 
+      this.cache = new Map();
     }
 
+    /**
+     * Verifica si la clave existe en el caché
+     * @param {string} key 
+     * @returns {boolean} 
+     */
     has(key) {
       return this.cache.has(key);
     }
 
+    /**
+     * Obtiene un elemento del caché y actualiza su posición (más recientemente usado)
+     * @param {string} key 
+     * @returns {any} 
+     */
     get(key) {
       if (!this.cache.has(key)) return null;
       
@@ -27,6 +49,12 @@ export async function LRU() {
       return value;
     }
 
+    /**
+     * Añade o actualiza un elemento en el caché
+     * Si el caché está lleno, elimina el elemento menos recientemente usado
+     * @param {string} key 
+     * @param {any} value 
+     */
     put(key, value) {
       if (this.cache.has(key)) {
         this.cache.delete(key);
@@ -39,19 +67,33 @@ export async function LRU() {
       this.cache.set(key, value);
     }
 
+    /**
+     * @param {string} key 
+     */
     delete(key) {
       this.cache.delete(key);
     }
 
+    /**
+     * @returns {Array}
+     */
     keys() {
       return Array.from(this.cache.keys());
     }
 
+    /**
+     * @returns {number} 
+     */
     get size() {
       return this.cache.size;
     }
   }
 
+  /**
+   * Simula el caché LRU con una distribución de datos específica
+   * @param {string} dataFilePath
+   * @param {string} distributionName 
+   */
   async function handleDistributionLRU(dataFilePath, distributionName) {
     let data;
     try {
@@ -59,12 +101,12 @@ export async function LRU() {
       data = JSON.parse(raw);
     } catch (err) {
       console.error(`Error leyendo o parseando ${dataFilePath}:`, err);
-      throw new Error(`Failed to read or parse file ${dataFilePath}: ${err.message}`);
+      throw new Error(`Error al leer o analizar el archivo ${dataFilePath}: ${err.message}`);
     }
 
     const client = await createClient({
       url: `redis://redis:${redisPort}` 
-    }).on('error', err => console.log('Redis Client Error', err)).connect();
+    }).on('error', err => console.log('Error del Cliente Redis', err)).connect();
     
     await client.flushDb();
     console.log(`Conectado a Redis en puerto ${redisPort} (Política LRU)`);
@@ -102,9 +144,9 @@ export async function LRU() {
     
     console.log(`\n--- Resultado de la simulación Distribución ${distributionName} con política LRU ---`);
     console.log(`Total de operaciones: ${hits + misses}`);
-    console.log(`Hits: ${hits}`);
-    console.log(`Misses: ${misses}`);
-    console.log(`Hit Rate: ${(hits / (hits + misses) * 100).toFixed(2)}%`);
+    console.log(`Aciertos: ${hits}`);
+    console.log(`Fallos: ${misses}`);
+    console.log(`Tasa de aciertos: ${(hits / (hits + misses) * 100).toFixed(2)}%`);
     console.log(`Total de llaves en caché: ${lruCache.size}`);
     
     await client.flushDb();
@@ -116,13 +158,21 @@ export async function LRU() {
   await handleDistributionLRU(EvenData, "uniforme");
 }
 
-
+/**
+ * Implementa la simulación de política de caché Random (Aleatorio)
+ * Desaloja entradas aleatorias cuando el caché está lleno
+ */
 export async function Random() {
   const MAX_KEYS = 150;
   const LongTailData = '/cache/data/long_tail_distribution.json';
   const EvenData = '/cache/data/even_distribution.json';
   const redisPort = 6379;
 
+  /**
+   * Simula el caché Random con una distribución de datos específica
+   * @param {string} dataFilePath 
+   * @param {string} distributionName 
+   */
   async function handleDistribution(dataFilePath, distributionName) {
     let data;
     try {
@@ -135,7 +185,7 @@ export async function Random() {
 
     const client = await createClient({
       url: `redis://redis:${redisPort}`
-    }).on('error', err => console.log('Redis Client Error', err)).connect();
+    }).on('error', err => console.log('Error del Cliente Redis', err)).connect();
 
     await client.flushDb();
     console.log(`Conectado a Redis en puerto ${redisPort}`);
@@ -171,9 +221,9 @@ export async function Random() {
     
     console.log(`\n--- Resultado de la simulación Distribución ${distributionName} con política Random ---`);
     console.log(`Total de operaciones: ${hits + misses}`);
-    console.log(`Hits: ${hits}`);
-    console.log(`Misses: ${misses}`);
-    console.log(`Hit Rate: ${(hits / (hits + misses) * 100).toFixed(2)}%`);
+    console.log(`Aciertos: ${hits}`);
+    console.log(`Fallos: ${misses}`);
+    console.log(`Tasa de aciertos: ${(hits / (hits + misses) * 100).toFixed(2)}%`);
     console.log(`Total de llaves en caché: ${cachedKeys.length}`);
     
     await client.flushDb();
