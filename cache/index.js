@@ -1,6 +1,6 @@
 import getData from './utils/distributions.js';
 import { LRU, Random } from './utils/policies.js'; 
-import { scrape } from './utils/scrape.js';
+import scrape from './utils/scrape.js';
 
 /**
  * Función principal que ejecuta el flujo completo del proceso:

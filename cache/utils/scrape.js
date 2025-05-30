@@ -12,7 +12,7 @@ import Database from "better-sqlite3";
  */
 export default async function scrape({
     DB_PATH = '/db/eventos.db',
-    targetEvents = 10000,
+    targetEvents = 50000,
     interval = 10,
     headless = true
 } = {}) {
