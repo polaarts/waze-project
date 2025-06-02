@@ -8,11 +8,11 @@ Se crea un flujo de trabajo donde primero se filtra con `fitlering.pig`, luego s
 []: # 
 []: # Asegúrate de que `output_directory` sea el directorio donde se guardan los resultados de Pig.
 
-se genera todo con `./pig/run_filtering_json.sh` siempre que esteoms ubicados en la raiz del proyecto
+se genera todo con `./pig/scripts/run_filtering_json.sh` siempre que esteoms ubicados en la raiz del proyecto
 
 recordar hacer ejecutables los scripts de bash:
 ```bash
-chmod +x ./pig/run_filtering_json.sh
-chmod +x ./pig/generate_csv_from_db.sh
+chmod +x ./pig/scripts/run_filtering_json.sh
+chmod +x ./pig/scripts/generate_csv_from_db.sh
 ```
 

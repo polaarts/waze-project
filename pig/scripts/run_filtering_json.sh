@@ -9,7 +9,7 @@ rm -f pig/output/filtered_data.json
 mkdir -p pig/output
 
 echo "Ejecutando filtrado con Apache Pig..."
-pig -x mapreduce pig/filtering.pig
+pig -x mapreduce pig/scripts/filtering.pig
 
 if [ ! -f "pig/output/filtered_raw_data/part-m-00000" ]; then
     echo "Error: No se generó el archivo de salida esperado"
@@ -38,9 +38,9 @@ echo "]" >> pig/output/filtered_data.json
 echo ""
 echo "Proceso completado exitosamente!"
 echo "Estadísticas:"
-echo "   - Total de registros procesados: $total_lines"
-echo "   - Archivo JSON generado: pig/output/filtered_data.json"
-echo "   - Tamaño del archivo: $(du -h pig/output/filtered_data.json | cut -f1)"
+echo "- Total de registros procesados: $total_lines"
+echo "- Archivo JSON generado: pig/output/filtered_data.json"
+echo "- Tamaño del archivo: $(du -h pig/output/filtered_data.json | cut -f1)"
 
 echo ""
 echo "Verificando formato JSON..."

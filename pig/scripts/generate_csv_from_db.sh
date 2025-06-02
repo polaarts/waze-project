@@ -75,4 +75,4 @@ fi
 
 echo ""
 echo "Archivo listo para procesamiento con Apache Pig!"
-echo "   Ejecutar: ./pig/run_filtering_json.sh"
+echo "   Ejecutar: ./pig/scripts/run_filtering_json.sh"

@@ -36,7 +36,6 @@ db/
 ## Requisitos Previos
 
 - Docker y Docker Compose instalados en tu sistema.
-- Node.js (si deseas ejecutar el código fuera de Docker).
 
 ## Configuración
 
@@ -58,11 +57,21 @@ db/
 
 ### 1. Construir y ejecutar los contenedores
 
-Ejecuta los siguientes comandos para construir y levantar los contenedores:
+> [!NOTE]
+> A partir de la entrega 2 del proyecto, se ha implementado un sistema de gestión de contenedores Docker para simplificar la ejecución del proyecto.
+
+Para listar los comandos disponibles para ejecutar los contenedores deseados, utiliza el siguiente comando:
 
 ```bash
-docker-compose build
-docker-compose up -d
+./manage.sh help
+```
+
+Sin embargo, a continuación se detallan los comandos más relevantes:
+
+```bash
+./manage.sh build          # Construir todos los contenedores
+./manage.sh cache          # Ejecutar el scraper y almacenar datos en Redis
+./manage.sh pig-full       # Ejecutar todo el flujo de filtrado y procesamiento con Pig
 ```
 
 ### 2. Funcionalidades principales

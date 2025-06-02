@@ -1,9 +1,3 @@
--- =======================================================================
--- SCRIPT DE FILTRADO DE DATOS WAZE
--- Objetivo: Limpiar registros erróneos de la base de datos eventos.db
--- Fecha: Mayo 2025
--- =======================================================================
-
 -- Registrar los JARs necesarios para Avro (comentados por compatibilidad)
 -- REGISTER '/opt/pig/lib/avro*.jar';
 -- REGISTER '/opt/pig/lib/jackson-core-asl*.jar';

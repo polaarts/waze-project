@@ -1,15 +1,60 @@
 services:
-  scraper:
+  cache:
     build:
       context: ./cache
       dockerfile: Dockerfile
+    container_name: waze-cache
     volumes:
-      - ./cache:/cache
-      - ./db:/db
+      - ./cache:/app/cache
+      - ./db:/app/db
+      - ./cache/data:/app/data
+    depends_on:
+      - redis
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - waze-network
+    command: ["node", "index.js"]
+
   redis:
-    container_name: redis
-    image: redis:latest
+    container_name: waze-redis
+    image: redis:7-alpine
     ports:
-      - 6379:6379
+      - "6379:6379"
     volumes:
+      - redis-data:/data
       - ./cache/data:/cache/data
+    networks:
+      - waze-network
+    command: redis-server --appendonly yes
+
+  pig:
+    build:
+      context: .
+      dockerfile: ./pig/Dockerfile
+    container_name: waze-pig
+    volumes:
+      - ./pig:/app/pig
+      - ./db:/app/db
+      - ./cache/data:/app/cache/data
+      - pig-output:/app/pig/output
+    environment:
+      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+      - PIG_HOME=/opt/pig
+      - HADOOP_HOME=/opt/hadoop
+      - PATH=/opt/pig/bin:/opt/hadoop/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    networks:
+      - waze-network
+    working_dir: /app
+    # Por defecto no ejecuta nada, se ejecuta manualmente
+    command: ["tail", "-f", "/dev/null"]
+
+volumes:
+  redis-data:
+  pig-output:
+
+networks:
+  waze-network:
+    driver: bridge

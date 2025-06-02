@@ -1,0 +1,18 @@
+{
+  "analysis_type": "incident_frequency_by_type",
+  "timestamp": "2025-06-02T05:29:08Z",
+  "total_types": 6,
+  "data": [
+    {"type": "JAM", "frequency": 2833},
+    {"type": "HAZARD", "frequency": 1688},
+    {"type": "POLICE", "frequency": 1818},
+    {"type": "ACCIDENT", "frequency": 106},
+    {"type": "CHIT_CHAT", "frequency": 535},
+    {"type": "ROAD_CLOSED", "frequency": 99}
+  ],
+  "summary": {
+    "total_incidents": 7079,
+    "most_frequent_type": "JAM",
+    "most_frequent_count": 2833
+  }
+}

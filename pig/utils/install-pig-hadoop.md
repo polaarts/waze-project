@@ -119,7 +119,3 @@ pig -x mapreduce
 # o para correr script
 pig -x mapreduce archivo.pig
 ```
-
----
-
-¿Quieres que te ayude a instalar/configurar Hadoop para poder usar Pig en modo MapReduce?
