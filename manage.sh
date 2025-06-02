@@ -26,8 +26,9 @@ show_help() {
     echo "  cache          - Ejecutar módulo cache (scraper + redis)"
     echo ""
     echo -e "${YELLOW}Módulo Pig:${NC}"
-    echo "  pig       - Ejecutar filtrado + análisis + JSON"
+    echo "  pig            - Ejecutar filtrado + análisis + JSON"
     echo "  filtering      - Ejecutar filtrado de datos"
+    echo "  filtering-json - Ejecutar filtrado con salida JSON array"
     echo "  analysis       - Ejecutar análisis geográfico"
     echo ""
     echo -e "${YELLOW}Utilidades:${NC}"
@@ -97,6 +98,13 @@ run_filtering() {
     docker compose up pig -d
     docker exec -it waze-pig bash /app/scripts/run_filtering.sh
     echo -e "${GREEN}Filtrado completado${NC}"
+}
+
+run_filtering_json() {
+    echo -e "${BLUE}Ejecutando filtrado de datos con salida JSON array...${NC}"
+    docker compose up pig -d
+    docker exec -it waze-pig bash /app/pig/scripts/run_filtering_json.sh
+    echo -e "${GREEN}Filtrado JSON completado${NC}"
 }
 
 run_analysis() {
@@ -213,6 +221,9 @@ main() {
             ;;
         "filtering")
             run_filtering
+            ;;
+        "filtering-json")
+            run_filtering_json
             ;;
         "analysis")
             run_analysis

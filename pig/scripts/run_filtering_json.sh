@@ -1,15 +1,25 @@
+set -e
+
 echo "Ejecutando filtrado de datos Waze con salida JSON array..."
 
-cd /home/samuel/Documents/universidad/SD/waze-project
+cd /app
+
+echo "Generando CSV desde base de datos..."
+if [ -f "db/eventos.db" ]; then
+    echo "id,collection,type,city,street,severity,reportBy,confidence,eventId" > pig/input_data.csv
+    sqlite3 db/eventos.db "SELECT id, collection, type, city, street, severity, reportBy, confidence, eventId FROM eventos ORDER BY id;" | sed 's/|/,/g' >> pig/input_data.csv
+    echo "CSV generado: $(wc -l < pig/input_data.csv) líneas"
+else
+    echo "Error: No se encuentra db/eventos.db"
+    exit 1
+fi
 
 echo "Limpiando outputs previos..."
 rm -rf pig/output/filtered_raw_data
 rm -f pig/output/filtered_data.json
 
-mkdir -p pig/output
-
-echo "Ejecutando filtrado con Apache Pig..."
-pig -x mapreduce pig/scripts/filtering.pig
+echo "Ejecutando Apache Pig - Filtrado..."
+pig -f pig/scripts/filtering.pig
 
 if [ ! -f "pig/output/filtered_raw_data/part-m-00000" ]; then
     echo "Error: No se generó el archivo de salida esperado"
@@ -46,11 +56,13 @@ echo ""
 echo "Verificando formato JSON..."
 if command -v python3 &> /dev/null; then
     if python3 -m json.tool pig/output/filtered_data.json > /dev/null 2>&1; then
-        echo "El archivo JSON es válido"
+        echo "✅ El archivo JSON es válido"
         echo "Primeros 3 registros:"
-        python3 -c "import json; data=json.load(open('pig/output/filtered_data.json')); [print(f'  {i+1}. {item[\"city\"]} - {item[\"type\"]} - {item[\"street\"]}') for i, item in enumerate(data[:3])]"
+        python3 -c "import json; data=json.load(open('pig/output/filtered_data.json')); [print(f'  {i+1}. {item[\"city\"]} - {item[\"type\"]} - {item[\"street\"]}') for i, item in enumerate(data[:3])]" 2>/dev/null || echo "Error al mostrar registros de ejemplo"
     else
-        echo "El archivo JSON tiene errores de formato"
+        echo "❌ El archivo JSON tiene errores de formato"
+        echo "Primeras líneas del archivo para debug:"
+        head -5 pig/output/filtered_data.json
     fi
 else
     echo "Python3 no disponible para validar JSON"
