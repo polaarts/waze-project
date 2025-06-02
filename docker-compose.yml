@@ -39,21 +39,18 @@ services:
       - ./pig:/app/pig
       - ./db:/app/db
       - ./cache/data:/app/cache/data
-      - pig-output:/app/pig/output
     environment:
-      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+      - JAVA_HOME=/usr/local/openjdk-8
       - PIG_HOME=/opt/pig
       - HADOOP_HOME=/opt/hadoop
       - PATH=/opt/pig/bin:/opt/hadoop/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     networks:
       - waze-network
     working_dir: /app
-    # Por defecto no ejecuta nada, se ejecuta manualmente
     command: ["tail", "-f", "/dev/null"]
 
 volumes:
   redis-data:
-  pig-output:
 
 networks:
   waze-network:

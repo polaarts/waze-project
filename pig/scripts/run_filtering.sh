@@ -18,7 +18,7 @@ echo "Limpiando outputs previos..."
 rm -rf pig/output/filtered_raw_data
 
 echo "Ejecutando Apache Pig - Filtrado..."
-pig -f pig/filtering.pig
+pig -f pig/scripts/filtering.pig
 
 if [ -f "pig/output/filtered_raw_data/part-m-00000" ]; then
     lines=$(wc -l < pig/output/filtered_raw_data/part-m-00000)

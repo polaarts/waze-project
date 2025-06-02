@@ -17,7 +17,7 @@ convert_analysis_by_type() {
     local output_file="$OUTPUT_DIR/analysis_by_type.json"
     
     if [ ! -f "$input_file" ]; then
-        echo -e "${RED}❌ Error: No se encontró $input_file${NC}"
+        echo -e "${RED}Error: No se encontró $input_file${NC}"
         return 1
     fi
     
@@ -120,6 +120,40 @@ convert_analysis_by_city() {
     echo -e "${GREEN}Total ciudades: $(wc -l < "$input_file"), Total incidentes: $total_incidents${NC}"
 }
 
+create_consolidated_summary() {
+    local output_file="$OUTPUT_DIR/consolidated_summary.json"
+    
+    if [ ! -f "$OUTPUT_DIR/analysis_by_type.json" ] || [ ! -f "$OUTPUT_DIR/analysis_by_city.json" ]; then
+        echo -e "${RED}Error: Archivos de análisis no encontrados para crear resumen consolidado${NC}"
+        return 1
+    fi
+    
+    echo -e "${YELLOW}Creando resumen consolidado...${NC}"
+    
+    echo "{" > "$output_file"
+    echo "  \"consolidated_summary\": {" >> "$output_file"
+    echo "    \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\"," >> "$output_file"
+    echo "    \"analysis_files\": [" >> "$output_file"
+    echo "      \"analysis_by_type.json\"," >> "$output_file"
+    echo "      \"analysis_by_city.json\"" >> "$output_file"
+    echo "    ]," >> "$output_file"
+    
+    local total_types=$(wc -l < "$OUTPUT_DIR/analysis_by_type/part-r-00000")
+    local total_cities=$(wc -l < "$OUTPUT_DIR/analysis_by_city/part-r-00000")
+    local total_incidents_type=$(awk -F'\t' '{sum += $2} END {print sum}' "$OUTPUT_DIR/analysis_by_type/part-r-00000")
+    local total_incidents_city=$(awk -F'\t' '{sum += $2} END {print sum}' "$OUTPUT_DIR/analysis_by_city/part-r-00000")
+    
+    echo "    \"totals\": {" >> "$output_file"
+    echo "      \"unique_incident_types\": $total_types," >> "$output_file"
+    echo "      \"unique_cities\": $total_cities," >> "$output_file"
+    echo "      \"total_incidents_processed\": $total_incidents_type" >> "$output_file"
+    echo "    }" >> "$output_file"
+    echo "  }" >> "$output_file"
+    echo "}" >> "$output_file"
+    
+    echo -e "${GREEN}Generado: $output_file${NC}"
+    echo -e "${GREEN}Resumen consolidado creado con $total_types tipos y $total_cities ciudades${NC}"
+}
 
 validate_json() {
     local file="$1"
@@ -153,13 +187,15 @@ echo -e "${BLUE}Validando archivos JSON generados...${NC}"
 
 validate_json "$OUTPUT_DIR/analysis_by_type.json"
 validate_json "$OUTPUT_DIR/analysis_by_city.json"
+validate_json "$OUTPUT_DIR/consolidated_summary.json"
 
 echo ""
-echo -e "${GREEN} Conversión completada ${NC}"
+echo -e "${GREEN}Conversión completada${NC}"
 echo ""
-echo -e "${BLUE} Archivos JSON generados:${NC}"
+echo -e "${BLUE}Archivos JSON generados:${NC}"
 echo -e "$OUTPUT_DIR/analysis_by_type.json"
 echo -e "$OUTPUT_DIR/analysis_by_city.json"
+echo -e "$OUTPUT_DIR/consolidated_summary.json"
 
 echo ""
 echo -e "${BLUE} Resumen:${NC}"

@@ -1,6 +1,3 @@
-# SCRIPT DE GESTIÓN DEL PROYECTO WAZE DOCKERIZADO
-# Permite ejecutar módulos específicos fácilmente
-
 set -e
 
 RED='\033[0;31m'
@@ -29,20 +26,20 @@ show_help() {
     echo "  cache          - Ejecutar módulo cache (scraper + redis)"
     echo ""
     echo -e "${YELLOW}Módulo Pig:${NC}"
-    echo "  pig            - Ejecutar módulo pig"
+    echo "  pig       - Ejecutar filtrado + análisis + JSON"
     echo "  filtering      - Ejecutar filtrado de datos"
     echo "  analysis       - Ejecutar análisis geográfico"
-    echo "  pig-full       - Ejecutar filtrado + análisis completo"
     echo ""
     echo -e "${YELLOW}Utilidades:${NC}"
     echo "  results        - Mostrar resultados de análisis"
     echo "  clean          - Limpiar outputs de pig"
     echo "  logs           - Ver logs de todos los servicios"
-    echo ""
+    echo ""# SCRIPT DE GESTIÓN DEL PROYECTO WAZE DOCKERIZADO
+
     echo "Ejemplos:"
     echo "  $0 build        # Construir todo"
-    echo "  $0 cache        # Solo recolección de datos"
-    echo "  $0 pig-full     # Solo filtrado y procesamiento"
+    echo "  $0 cache        # Recolección de datos"
+    echo "  $0 pig     # Filtrado y procesamiento"
 }
 
 check_docker() {
@@ -52,7 +49,7 @@ check_docker() {
     fi
 }
 
-# Construir contenedores
+# Contenedores
 build_all() {
     echo -e "${BLUE}Construyendo todos los contenedores...${NC}"
     docker compose build
@@ -71,7 +68,7 @@ build_pig() {
     echo -e "${GREEN}Módulo pig construido${NC}"
 }
 
-# Gestión de servicios
+# Servicios
 up_all() {
     echo -e "${BLUE}Levantando todos los servicios...${NC}"
     docker compose up -d
@@ -94,20 +91,6 @@ run_cache() {
 }
 
 # Módulo Pig
-run_pig() {
-    echo -e "${BLUE}Ejecutando módulo pig...${NC}"
-    docker compose up pig -d
-    echo -e "${GREEN}Módulo pig iniciado${NC}"
-    echo -e "${YELLOW}Comandos disponibles:${NC}"
-    echo "  $0 filtering    - Ejecutar filtrado"
-    echo "  $0 analysis     - Ejecutar análisis"
-    echo "  $0 pig-shell    - Acceder al shell"
-}
-
-pig_shell() {
-    echo -e "${BLUE}Accediendo al shell del contenedor pig...${NC}"
-    docker exec -it waze-pig bash
-}
 
 run_filtering() {
     echo -e "${BLUE}Ejecutando filtrado de datos...${NC}"
@@ -123,21 +106,56 @@ run_analysis() {
     echo -e "${GREEN}Análisis completado${NC}"
 }
 
-run_pig_full() {
-    echo -e "${BLUE}Ejecutando procesamiento completo (filtrado + análisis)...${NC}"
+run_pig() {
+    echo -e "${BLUE}Ejecutando procesamiento completo (filtrado + análisis + JSON)...${NC}"
     docker compose up pig -d
     echo -e "${YELLOW}Paso 1: Filtrado de datos...${NC}"
-    docker exec -it waze-pig bash /app/scripts/run_filtering.sh
+    docker exec -it waze-pig bash /app/pig/scripts/run_filtering.sh
     echo -e "${YELLOW}Paso 2: Análisis geográfico...${NC}"
-    docker exec -it waze-pig bash /app/scripts/run_analysis.sh
+    docker exec -it waze-pig bash /app/pig/scripts/run_analysis.sh
+    echo -e "${YELLOW}Paso 3: Conversión a JSON...${NC}"
+    bash pig/scripts/convert_analysis_to_json.sh
     echo -e "${GREEN}Procesamiento completo terminado${NC}"
     show_results
 }
 
-# Utilidades
 show_results() {
     echo -e "${BLUE}Resultados de análisis:${NC}"
-    docker exec -it waze-pig ls -la /app/pig/output/ || echo -e "${YELLOW}No hay resultados disponibles${NC}"
+    echo ""
+    
+    echo -e "${YELLOW}Archivos en contenedor:${NC}"
+    docker exec -it waze-pig ls -la /app/pig/output/ 2>/dev/null || echo -e "${RED}No hay resultados disponibles${NC}"
+    
+    echo ""
+    echo -e "${YELLOW}Archivos JSON generados:${NC}"
+    if [ -f "pig/output/analysis_by_type.json" ]; then
+        local size=$(du -h pig/output/analysis_by_type.json | cut -f1)
+        echo -e "analysis_by_type.json ($size)"
+    else
+        echo -e "analysis_by_type.json (no encontrado)"
+    fi
+    
+    if [ -f "pig/output/analysis_by_city.json" ]; then
+        local size=$(du -h pig/output/analysis_by_city.json | cut -f1)
+        echo -e "analysis_by_city.json ($size)"
+    else
+        echo -e "analysis_by_city.json (no encontrado)"
+    fi
+    
+    if [ -f "pig/output/consolidated_summary.json" ]; then
+        local size=$(du -h pig/output/consolidated_summary.json | cut -f1)
+        echo -e "consolidated_summary.json ($size)"
+    else
+        echo -e "consolidated_summary.json (no encontrado)"
+    fi
+    
+    if [ -f "pig/output/filtered_raw_data/part-m-00000" ]; then
+        local lines=$(wc -l < pig/output/filtered_raw_data/part-m-00000)
+        local size=$(du -h pig/output/filtered_raw_data/part-m-00000 | cut -f1)
+        echo ""
+        echo -e "${YELLOW}Datos filtrados:${NC}"
+        echo -e "$lines registros procesados ($size)"
+    fi
 }
 
 clean_outputs() {
@@ -156,7 +174,6 @@ show_logs() {
     docker compose logs -f
 }
 
-# Función principal
 main() {
     check_docker
 
@@ -199,9 +216,6 @@ main() {
             ;;
         "analysis")
             run_analysis
-            ;;
-        "pig-full")
-            run_pig_full
             ;;
         "results")
             show_results

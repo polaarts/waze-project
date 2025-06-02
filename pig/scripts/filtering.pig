@@ -72,17 +72,7 @@ normalized_data = FOREACH clean_data GENERATE
     TRIM(REPLACE(eventId, '"', '')) AS eventId_clean;
 
 -- =======================================================================
--- PASO 4: GENERAR ESTADÍSTICAS DE FILTRADO
--- =======================================================================
-
-original_count = FOREACH (GROUP data_without_headers ALL) GENERATE COUNT(data_without_headers) AS original_total;
-filtered_count = FOREACH (GROUP normalized_data ALL) GENERATE COUNT(normalized_data) AS filtered_total;
-
-DUMP original_count;
-DUMP filtered_count;
-
--- =======================================================================
--- PASO 5: FORMATEAR DATOS COMO JSON MANTENIENDO ESQUEMA AVRO
+-- PASO 4: FORMATEAR DATOS COMO JSON MANTENIENDO ESQUEMA AVRO
 -- =======================================================================
 
 filtered_with_schema = FOREACH normalized_data GENERATE

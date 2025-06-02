@@ -1,8 +1,9 @@
+#!/bin/bash
 set -e
 
 echo "Iniciando contenedor Apache Pig para proyecto Waze..."
 
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+export JAVA_HOME=/usr/local/openjdk-8
 export HADOOP_HOME=/opt/hadoop
 export PIG_HOME=/opt/pig
 export PATH=$PATH:$HADOOP_HOME/bin:$PIG_HOME/bin
@@ -14,10 +15,6 @@ echo "   - JAVA_HOME: $JAVA_HOME"
 echo "   - HADOOP_HOME: $HADOOP_HOME"
 echo "   - PIG_HOME: $PIG_HOME"
 
-echo "Verificando instalaciones..."
-java -version
-hadoop version | head -1
-pig -version
 
 echo "Contenedor Pig listo para ejecutar scripts"
 echo ""

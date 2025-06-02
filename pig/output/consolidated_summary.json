@@ -1,0 +1,14 @@
+{
+  "consolidated_summary": {
+    "timestamp": "2025-06-02T14:50:51Z",
+    "analysis_files": [
+      "analysis_by_type.json",
+      "analysis_by_city.json"
+    ],
+    "totals": {
+      "unique_incident_types": 6,
+      "unique_cities": 10,
+      "total_incidents_processed": 7079
+    }
+  }
+}

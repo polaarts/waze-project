@@ -1,6 +1,6 @@
 {
   "analysis_type": "incident_frequency_by_city",
-  "timestamp": "2025-06-02T05:29:08Z",
+  "timestamp": "2025-06-02T14:50:51Z",
   "total_cities": 10,
   "data": [
     {"city": "Renca", "incidents": 4},
