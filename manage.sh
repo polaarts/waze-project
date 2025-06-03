@@ -96,7 +96,7 @@ run_cache() {
 run_filtering() {
     echo -e "${BLUE}Ejecutando filtrado de datos...${NC}"
     docker compose up pig -d
-    docker exec -it waze-pig bash /app/scripts/run_filtering.sh
+    docker exec -it waze-pig bash /app/pig/scripts/run_filtering.sh
     echo -e "${GREEN}Filtrado completado${NC}"
 }
 
@@ -110,7 +110,7 @@ run_filtering_json() {
 run_analysis() {
     echo -e "${BLUE}Ejecutando análisis geográfico...${NC}"
     docker compose up pig -d
-    docker exec -it waze-pig bash /app/scripts/run_analysis.sh
+    docker exec -it waze-pig bash /app/pig/scripts/run_analysis.sh
     echo -e "${GREEN}Análisis completado${NC}"
 }
 

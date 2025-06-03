@@ -1,6 +1,6 @@
 {
   "analysis_type": "incident_frequency_by_type",
-  "timestamp": "2025-06-02T14:50:51Z",
+  "timestamp": "2025-06-03T02:04:13Z",
   "total_types": 6,
   "data": [
     {"type": "JAM", "frequency": 2833},

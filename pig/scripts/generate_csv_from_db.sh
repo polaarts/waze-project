@@ -1,6 +1,6 @@
 echo "Generando input_data.csv desde eventos.db..."
 
-cd /home/samuel/Documents/universidad/SD/waze-project
+cd /app
 
 if [ ! -f "db/eventos.db" ]; then
     echo "Error: No se encontró el archivo db/eventos.db"

@@ -2,7 +2,7 @@ set -e
 
 echo "Ejecutando filtrado de datos Waze..."
 
-cd /home/samuel/Documents/universidad/SD/waze-project
+cd /app
 
 echo "Generando CSV desde base de datos..."
 if [ -f "db/eventos.db" ]; then
