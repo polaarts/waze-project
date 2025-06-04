@@ -2,36 +2,8 @@
 
 Este proyecto tiene como objetivo recolectar, procesar y analizar eventos de Waze utilizando un sistema basado en contenedores Docker. El sistema incluye un scraper para recolectar datos, un sistema de almacenamiento en Redis y un conjunto de políticas para procesar los eventos en caché.
 
-## Estructura del Proyecto
-
-El proyecto está organizado de la siguiente manera:
-
-```
-docker-compose.yml
-README.md
-cache/
-    Dockerfile
-    index.js
-    package.json
-    data/
-        even_distribution.json
-        long_tail_distribution.json
-    utils/
-        distributions.js
-        policies.js
-        scrape.js
-db/
-    eventos.db
-```
-
-### Descripción de Carpetas y Archivos
-
-- **docker-compose.yml**: Archivo de configuración para orquestar los contenedores Docker.
-- **cache/**: Contiene el código fuente del scraper y las utilidades para procesar los datos.
-  - **index.js**: Punto de entrada principal del scraper.
-  - **utils/**: Contiene las utilidades para la distribución de datos, políticas de procesamiento y scraping.
-  - **data/**: Carpeta donde se generan los archivos de salida JSON.
-- **db/**: Contiene la base de datos SQLite con los eventos de Waze.
+> [!NOTE]
+> A partir de la entrega 2 del proyecto, se ha implementado un sistema de gestión de contenedores Docker para simplificar la ejecución del proyecto.
 
 ## Requisitos Previos
 
@@ -53,13 +25,6 @@ db/
 
 3. Configura el archivo `docker-compose.yml` si es necesario.
 
-## Uso
-
-### 1. Construir y ejecutar los contenedores
-
-> [!NOTE]
-> A partir de la entrega 2 del proyecto, se ha implementado un sistema de gestión de contenedores Docker para simplificar la ejecución del proyecto.
-
 Para listar los comandos disponibles para ejecutar los contenedores deseados, utiliza el siguiente comando:
 
 ```bash
@@ -74,21 +39,66 @@ Sin embargo, a continuación se detallan los comandos más relevantes:
 ./manage.sh pig-full       # Ejecutar todo el flujo de filtrado y procesamiento con Pig
 ```
 
-### 2. Funcionalidades principales
+## Estructura del Proyecto
 
-El proyecto realiza las siguientes tareas:
+```
+waze-project/
+├── docker-compose.yml
+├── manage.sh
+├── README.md
+├── cache/
+│   ├── Dockerfile
+│   ├── index.js
+│   ├── package.json
+│   ├── data/
+│   │   ├── even_distribution.json
+│   │   └── long_tail_distribution.json
+│   └── utils/
+│       ├── distributions.js
+│       ├── policies.js
+│       └── scrape.js
+├── pig/
+│   ├── Dockerfile
+│   ├── config/
+│   │   ├── hadoop/
+│   │   │   ├── core-site.xml
+│   │   │   ├── hdfs-site.xml
+│   │   │   ├── mapred-site.xml
+│   │   │   └── yarn-site.xml
+│   │   └── pig/
+│   │       └── pig.properties
+│   ├── scripts/
+│   │   ├── convert_analysis_to_json.sh
+│   │   ├── generate_csv_from_db.sh
+│   │   ├── run_filtering.sh
+│   │   ├── run_analysis.sh
+│   │   └── docker-entrypoint.sh
+│   └── output/
+│       ├── analysis_by_city.json
+│       ├── analysis_by_type.json
+│       └── consolidated_summary.json
+└── db/
+    └── eventos.db
+```
 
-1. **Recolección de eventos de Waze**:
-   - Se ejecuta mediante la función `scrape()` en `utils/scrape.js`.
+## Detalles
 
-2. **Generación de distribuciones**:
-   - `getData()` en `utils/distributions.js` genera dos archivos JSON:
-     - `long_tail_distribution.json`
-     - `even_distribution.json`
+### Archivos principales
+- **`manage.sh`** - Script de orquestación principal con interfaz de comandos completa.
+- **`docker-compose.yml`** - Orquestación de contenedores definiendo tres servicios (cache, redis, pig).
 
-3. **Aplicación de políticas**:
-   - `LRU()` y `Random()` en `utils/policies.js` procesan los datos según diferentes políticas.
+### Módulo Cache (`cache/`)
+Contiene el sistema de recolección de datos de Node.js:
+- **`index.js`** - Punto de entrada principal del scraper.
+- **`utils/scrape.js`** - Funcionalidad de raspado web usando Puppeteer.
+- **`data/`** - Archivos de distribución generados para el análisis de políticas de caché.
 
-### 3. Verificar los resultados
+### Módulo Pig (`pig/`)
+Contiene Apache Pig + Hadoop analytics processing:
+- **`Dockerfile`** - Crea el entorno Java 8 + Hadoop + Pig.
+- **`config/`** - Ficheros de configuración de Hadoop y Pig.
+- **`scripts/`** - Scripts de procesamiento y conversión.
+- **`output/`** - Resultados de análisis generados en formato JSON.
 
-Los archivos generados estarán disponibles en la carpeta `cache/data`.
+### Base de datos (`db/`)
+- **`eventos.db`** - Base de datos SQLite que almacena los eventos Waze recogidos con un esquema unificado para alertas y atascos de tráfico.
