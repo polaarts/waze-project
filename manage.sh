@@ -15,32 +15,37 @@ show_help() {
     echo "Comandos disponibles:"
     echo ""
     echo -e "${YELLOW}Gestión de Contenedores:${NC}"
-    echo "  build          - Construir todos los contenedores"
-    echo "  build-cache    - Construir solo módulo cache"
-    echo "  build-pig      - Construir solo módulo pig"
-    echo "  up             - Levantar todos los servicios"
-    echo "  down           - Detener todos los servicios"
-    echo "  status         - Ver estado de contenedores"
+    echo "  build                 - Construir todos los contenedores"
+    echo "  build-cache           - Construir solo módulo cache"
+    echo "  build-pig             - Construir solo módulo pig"
+    echo "  build-visualization   - Construir solo módulo visualization"
+    echo "  up                    - Levantar todos los servicios"
+    echo "  down                  - Detener todos los servicios"
+    echo "  status                - Ver estado de contenedores"
     echo ""
     echo -e "${YELLOW}Módulo Cache:${NC}"
-    echo "  cache          - Ejecutar módulo cache (scraper + redis)"
+    echo "  cache                 - Ejecutar módulo cache (scraper + redis)"
     echo ""
     echo -e "${YELLOW}Módulo Pig:${NC}"
-    echo "  pig            - Ejecutar filtrado + análisis + JSON"
-    echo "  filtering      - Ejecutar filtrado de datos"
-    echo "  filtering-json - Ejecutar filtrado con salida JSON array"
-    echo "  analysis       - Ejecutar análisis geográfico"
+    echo "  pig                   - Ejecutar filtrado + análisis + JSON"
+    echo "  filtering             - Ejecutar filtrado de datos"
+    echo "  filtering-json        - Ejecutar filtrado con salida JSON array"
+    echo "  analysis              - Ejecutar análisis geográfico"
+    echo ""
+    echo -e "${YELLOW}Módulo Visualización:${NC}"
+    echo "  visualization         - Indexar eventos en Elasticsearch"
+    echo "  visualization-logs    - Ver logs del módulo visualization"
     echo ""
     echo -e "${YELLOW}Utilidades:${NC}"
-    echo "  results        - Mostrar resultados de análisis"
-    echo "  clean          - Limpiar outputs de pig"
-    echo "  logs           - Ver logs de todos los servicios"
-    echo ""# SCRIPT DE GESTIÓN DEL PROYECTO WAZE DOCKERIZADO
-
+    echo "  results               - Mostrar resultados de análisis"
+    echo "  clean                 - Limpiar outputs de pig"
+    echo "  logs                  - Ver logs de todos los servicios"
+    echo ""
     echo "Ejemplos:"
-    echo "  $0 build        # Construir todo"
-    echo "  $0 cache        # Recolección de datos"
-    echo "  $0 pig     # Filtrado y procesamiento"
+    echo "  $0 build              # Construir todo"
+    echo "  $0 cache              # Recolección de datos"
+    echo "  $0 pig                # Filtrado y procesamiento"
+    echo "  $0 visualization      # Indexar eventos"
 }
 
 check_docker() {
@@ -69,6 +74,12 @@ build_pig() {
     echo -e "${GREEN}Módulo pig construido${NC}"
 }
 
+build_visualization() {
+    echo -e "${BLUE}Construyendo módulo visualization...${NC}"
+    docker compose build visualization
+    echo -e "${GREEN}Módulo visualization construido${NC}"
+}
+
 # Servicios
 up_all() {
     echo -e "${BLUE}Levantando todos los servicios...${NC}"
@@ -92,7 +103,6 @@ run_cache() {
 }
 
 # Módulo Pig
-
 run_filtering() {
     echo -e "${BLUE}Ejecutando filtrado de datos...${NC}"
     docker compose up pig -d
@@ -127,6 +137,41 @@ run_pig() {
     show_results
 }
 
+wait_for_elasticsearch() {
+    echo -e "${BLUE}Esperando a que Elasticsearch responda en http://localhost:9200 ...${NC}"
+    local retries=0
+    until curl -s http://localhost:9200 >/dev/null; do
+        retries=$((retries+1))
+        if [ $retries -gt 30 ]; then
+            echo -e "${RED}ERROR: Elasticsearch no respondió después de 30 segundos.${NC}"
+            exit 1
+        fi
+        sleep 1
+    done
+    echo -e "${GREEN}Elasticsearch está listo.${NC}"
+}
+
+# Módulo Visualización
+run_visualization() {
+    echo -e "${BLUE}Levantando Elasticsearch...${NC}"
+    docker compose up -d elasticsearch
+
+    wait_for_elasticsearch
+
+    echo -e "${BLUE}Indexando eventos en Elasticsearch con el módulo visualization...${NC}"
+    docker compose run --rm visualization
+
+    echo -e "${GREEN}Indexación completada${NC}"
+    echo -e "${YELLOW}Para seguir viendo logs en tiempo real: $0 visualization-logs${NC}"
+}
+
+
+visualization_logs() {
+    echo -e "${BLUE}Logs del módulo visualization:${NC}"
+    docker compose logs -f visualization
+}
+
+# Utilidades
 show_results() {
     echo -e "${BLUE}Resultados de análisis:${NC}"
     echo ""
@@ -136,30 +181,18 @@ show_results() {
     
     echo ""
     echo -e "${YELLOW}Archivos JSON generados:${NC}"
-    if [ -f "pig/output/analysis_by_type.json" ]; then
-        local size=$(du -h pig/output/analysis_by_type.json | cut -f1)
-        echo -e "analysis_by_type.json ($size)"
-    else
-        echo -e "analysis_by_type.json (no encontrado)"
-    fi
-    
-    if [ -f "pig/output/analysis_by_city.json" ]; then
-        local size=$(du -h pig/output/analysis_by_city.json | cut -f1)
-        echo -e "analysis_by_city.json ($size)"
-    else
-        echo -e "analysis_by_city.json (no encontrado)"
-    fi
-    
-    if [ -f "pig/output/consolidated_summary.json" ]; then
-        local size=$(du -h pig/output/consolidated_summary.json | cut -f1)
-        echo -e "consolidated_summary.json ($size)"
-    else
-        echo -e "consolidated_summary.json (no encontrado)"
-    fi
-    
+    for file in analysis_by_type.json analysis_by_city.json consolidated_summary.json; do
+        if [ -f "pig/output/$file" ]; then
+            size=$(du -h "pig/output/$file" | cut -f1)
+            echo -e "$file ($size)"
+        else
+            echo -e "$file (no encontrado)"
+        fi
+    done
+
     if [ -f "pig/output/filtered_raw_data/part-m-00000" ]; then
-        local lines=$(wc -l < pig/output/filtered_raw_data/part-m-00000)
-        local size=$(du -h pig/output/filtered_raw_data/part-m-00000 | cut -f1)
+        lines=$(wc -l < pig/output/filtered_raw_data/part-m-00000)
+        size=$(du -h pig/output/filtered_raw_data/part-m-00000 | cut -f1)
         echo ""
         echo -e "${YELLOW}Datos filtrados:${NC}"
         echo -e "$lines registros procesados ($size)"
@@ -186,60 +219,25 @@ main() {
     check_docker
 
     case "${1:-help}" in
-        "build")
-            build_all
-            ;;
-        "build-cache")
-            build_cache
-            ;;
-        "build-pig")
-            build_pig
-            ;;
-        "up")
-            up_all
-            ;;
-        "down")
-            down_all
-            ;;
-        "status")
-            show_status
-            ;;
-        "cache")
-            run_cache
-            ;;
-        "cache-logs")
-            cache_logs
-            ;;
-        "redis-cli")
-            redis_cli
-            ;;
-        "pig")
-            run_pig
-            ;;
-        "pig-shell")
-            pig_shell
-            ;;
-        "filtering")
-            run_filtering
-            ;;
-        "filtering-json")
-            run_filtering_json
-            ;;
-        "analysis")
-            run_analysis
-            ;;
-        "results")
-            show_results
-            ;;
-        "clean")
-            clean_outputs
-            ;;
-        "logs")
-            show_logs
-            ;;
-        "help"|"-h"|"--help"|*)
-            show_help
-            ;;
+        build)                  build_all        ;;
+        build-cache)            build_cache      ;;
+        build-pig)              build_pig        ;;
+        build-visualization)    build_visualization ;;
+        up)                     up_all           ;;
+        down)                   down_all         ;;
+        status)                 show_status      ;;
+        cache)                  run_cache        ;;
+        cache-logs)             show_logs        ;;  
+        pig)                    run_pig          ;;
+        filtering)              run_filtering    ;;
+        filtering-json)         run_filtering_json ;;
+        analysis)               run_analysis     ;;
+        visualization)          run_visualization ;;
+        visualization-logs)     visualization_logs ;;
+        results)                show_results     ;;
+        clean)                  clean_outputs    ;;
+        logs)                   show_logs        ;;
+        help|"-h"|"--help"|*)   show_help        ;;
     esac
 }
 

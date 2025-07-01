@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Eventos Waze</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@tailwindcss/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="text-4xl font-bold">Dashboard de Eventos Waze</h1>
+        <p class="text-lg mt-2">Análisis y visualización de datos de tráfico</p>
+    </div>
+
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="metric-card text-center">
+                <h3 class="text-xl font-bold mb-2">Total de Eventos</h3>
+                <p class="text-3xl font-bold" id="total-events">-</p>
+            </div>
+            <div class="metric-card text-center">
+                <h3 class="text-xl font-bold mb-2">Ciudades Activas</h3>
+                <p class="text-3xl font-bold" id="total-cities">-</p>
+            </div>
+            <div class="metric-card text-center">
+                <h3 class="text-xl font-bold mb-2">Tipos de Eventos</h3>
+                <p class="text-3xl font-bold" id="total-types">-</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Gráfico por tipo de evento -->
+            <div class="chart-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Eventos por Tipo</h2>
+                <div class="chart-container">
+                    <canvas id="typeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Eventos por Ciudad</h2>
+                <div class="chart-container">
+                    <canvas id="cityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-card mt-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Distribución Detallada por Ciudad</h2>
+            <div class="chart-container" style="height: 500px;">
+                <canvas id="cityBarChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card mt-6">
+            <h2 class="text-2xl font-bold mb-4 text-gray-800">Resumen por Tipo de Evento</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white" id="summaryTable">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frecuencia</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentaje</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="summaryTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+</body>
+</html>
