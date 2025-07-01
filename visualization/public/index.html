@@ -3,107 +3,379 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Eventos Waze</title>
+    <title>Waze Analytics Platform</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/@tailwindcss/dist/tailwind.min.css" rel="stylesheet">
     <style>
-        .chart-container {
-            position: relative;
-            height: 400px;
-            margin: 20px 0;
-        }
-        .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .chart-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
         }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-tab {
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            font-weight: 500;
+        }
+        
+        .nav-tab:hover {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: #667eea;
+        }
+        
+        .nav-tab.active {
+            background: #667eea;
             color: white;
-            padding: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .module-container {
+            display: none;
+        }
+        
+        .module-container.active {
+            display: block;
+        }
+        
+        /* Estilos para módulos */
+        .module-header {
             text-align: center;
-            margin-bottom: 30px;
+            color: white;
+            margin-bottom: 2rem;
+        }
+        
+        .module-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .module-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .widget {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .widget:hover {
+            transform: translateY(-5px);
+        }
+        
+        .widget h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 1.3rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            margin: 0.5rem;
+        }
+        
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+        
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 1rem;
+            background-color: #fdf2f2;
+            border-radius: 5px;
+            margin: 1rem 0;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .nav-tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .module-header h1 {
+                font-size: 2rem;
+            }
+        }
+        
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="text-4xl font-bold">Dashboard de Eventos Waze</h1>
-        <p class="text-lg mt-2">Análisis y visualización de datos de tráfico</p>
-    </div>
-
-    <div class="container mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div class="metric-card text-center">
-                <h3 class="text-xl font-bold mb-2">Total de Eventos</h3>
-                <p class="text-3xl font-bold" id="total-events">-</p>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                Waze Analytics Platform
             </div>
-            <div class="metric-card text-center">
-                <h3 class="text-xl font-bold mb-2">Ciudades Activas</h3>
-                <p class="text-3xl font-bold" id="total-cities">-</p>
-            </div>
-            <div class="metric-card text-center">
-                <h3 class="text-xl font-bold mb-2">Tipos de Eventos</h3>
-                <p class="text-3xl font-bold" id="total-types">-</p>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Gráfico por tipo de evento -->
-            <div class="chart-card">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800">Eventos por Tipo</h2>
-                <div class="chart-container">
-                    <canvas id="typeChart"></canvas>
+            <div class="nav-tabs">
+                <div class="nav-tab active" data-module="elasticsearch">
+                    Elasticsearch Analytics
                 </div>
-            </div>
-
-            <div class="chart-card">
-                <h2 class="text-2xl font-bold mb-4 text-gray-800">Eventos por Ciudad</h2>
-                <div class="chart-container">
-                    <canvas id="cityChart"></canvas>
+                <div class="nav-tab" data-module="cache">
+                    ⚡ Cache Metrics
+                </div>
+                <div class="nav-tab" data-module="pig">
+                    Pig Analytics
                 </div>
             </div>
         </div>
+    </nav>
 
-        <div class="chart-card mt-6">
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">Distribución Detallada por Ciudad</h2>
-            <div class="chart-container" style="height: 500px;">
-                <canvas id="cityBarChart"></canvas>
+    <main class="main-content">
+        <div id="elasticsearch-module" class="module-container active">
+            <div class="module-header">
+                <h1>Elasticsearch Analytics</h1>
+                <p>Análisis en tiempo real de eventos de tráfico</p>
+                <div id="es-lastUpdate"></div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="widget">
+                    <h3>Métricas Principales</h3>
+                    <div id="es-metrics" class="summary-grid loading">Cargando métricas...</div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Eventos por Tipo</h3>
+                    <div class="chart-container">
+                        <canvas id="es-typeChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Eventos por Ubicación</h3>
+                    <div class="chart-container">
+                        <canvas id="es-locationChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Timeline de Eventos</h3>
+                    <div class="chart-container">
+                        <canvas id="es-timelineChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="chart-card mt-6">
-            <h2 class="text-2xl font-bold mb-4 text-gray-800">Resumen por Tipo de Evento</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white" id="summaryTable">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frecuencia</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Porcentaje</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="summaryTableBody">
-                    </tbody>
-                </table>
+        <div id="cache-module" class="module-container">
+            <div class="module-header">
+                <h1>⚡ Cache Performance Dashboard</h1>
+                <p>Monitoreo y métricas de Redis</p>
+                <div id="cache-lastUpdate"></div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="widget">
+                    <h3>Métricas de Redis</h3>
+                    <div id="cache-metrics" class="summary-grid loading">Cargando métricas...</div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Cache Hit Rate</h3>
+                    <div class="chart-container">
+                        <canvas id="cache-hitRateChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Uso de Memoria</h3>
+                    <div class="chart-container">
+                        <canvas id="cache-memoryChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Operaciones por Segundo</h3>
+                    <div class="chart-container">
+                        <canvas id="cache-opsChart"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <script src="dashboard.js"></script>
+        <div id="pig-module" class="module-container">
+            <div class="module-header">
+                <h1>Pig Analytics Dashboard</h1>
+                <p>Análisis de Big Data con Apache Pig</p>
+                <div id="pig-lastUpdate"></div>
+            </div>
+            
+            <div class="dashboard">
+                <div class="widget">
+                    <h3>Resumen Consolidado</h3>
+                    <div id="pig-summaryContent" class="loading">Cargando métricas...</div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Incidentes por Tipo</h3>
+                    <div class="chart-container">
+                        <canvas id="pig-typeChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Incidentes por Ciudad</h3>
+                    <div class="chart-container">
+                        <canvas id="pig-cityChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Timeline de Filtrado</h3>
+                    <div class="chart-container">
+                        <canvas id="pig-timelineChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Top 10 Calles con Más Incidentes</h3>
+                    <div id="pig-streetsContent" class="loading">Cargando calles...</div>
+                </div>
+                
+                <div class="widget">
+                    <h3>Estado del Procesamiento</h3>
+                    <div id="pig-statusContent" class="loading">Verificando estado...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="spa-app.js"></script>
 </body>
 </html>
