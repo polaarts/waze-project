@@ -1,0 +1,69 @@
+{
+  "mappings": {
+    "properties": {
+      "policy": {
+        "type": "keyword",
+        "fields": {
+          "text": {
+            "type": "text"
+          }
+        }
+      },
+      "distribution": {
+        "type": "keyword",
+        "fields": {
+          "text": {
+            "type": "text"
+          }
+        }
+      },
+      "operation": {
+        "type": "keyword"
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "eventId": {
+        "type": "keyword"
+      },
+      "operation_number": {
+        "type": "long"
+      },
+      "cache_size": {
+        "type": "integer"
+      },
+      "hit_rate": {
+        "type": "float"
+      },
+      "total_operations": {
+        "type": "long"
+      },
+      "total_hits": {
+        "type": "long"
+      },
+      "total_misses": {
+        "type": "long"
+      },
+      "event_type": {
+        "type": "keyword"
+      },
+      "city": {
+        "type": "keyword"
+      },
+      "street": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s"
+  }
+}
