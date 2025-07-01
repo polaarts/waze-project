@@ -41,8 +41,13 @@ async function ensureIndex(client) {
 async function bulkIndex(client, docs) {
   const body = docs.flatMap(doc => [{ index: { _index: ES_INDEX, _id: doc.eventId } }, doc]);
   const { errors, items } = await client.bulk({ refresh: true, body });
+
   if (errors) {
-    console.error('Algunos documentos fallaron al indexar:', items.filter(i => i.index && i.index.error));
+    const errorItems = items.filter(i => i.index && i.index.error);
+    console.error(`❌ ${errorItems.length} documentos fallaron al indexar:`);
+    errorItems.forEach(({ index: { _id, error } }) => {
+      console.error(`  • Doc ID=${_id}: [${error.type}] ${error.reason}`);
+    });
   } else {
     console.log(`Indexados ${docs.length} eventos en "${ES_INDEX}".`);
   }
@@ -105,21 +110,23 @@ async function indexData() {
     console.log('Elasticsearch no configurado, omitiendo indexación.');
     return;
   }
-  
+
   const client = new Client({ node: ES_HOST });
   console.log('Conectando a Elasticsearch en', ES_HOST);
-  
+
   await ensureIndex(client);
-  
+
   const db = new Database(DB_PATH, { readonly: true });
-  const rows = db.prepare("SELECT *, datetime('now') AS timestamp FROM eventos").all();
+  const rows = db.prepare(
+    "SELECT *, strftime('%Y-%m-%dT%H:%M:%SZ','now') AS timestamp FROM eventos"
+  ).all();
   db.close();
-  
+
   if (rows.length === 0) {
     console.log('No hay eventos en la BD para indexar.');
     return;
   }
-  
+
   await bulkIndex(client, rows);
   console.log('Proceso de indexación completado.');
 }
@@ -128,17 +135,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Cache Dashboard routes
 app.get('/cache', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'cache-dashboard.html'));
 });
 
-// Pig Dashboard routes
 app.get('/pig', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pig-dashboard.html'));
 });
 
-// Cache API endpoints
 app.get('/api/cache/aggregated-stats', async (req, res) => {
   try {
     if (!ES_HOST) {
@@ -147,7 +151,6 @@ app.get('/api/cache/aggregated-stats', async (req, res) => {
     
     const client = new Client({ node: ES_HOST });
     
-    // Obtener estadísticas agregadas por política y distribución
     const response = await client.search({
       index: ES_CACHE_INDEX,
       size: 0,
@@ -219,6 +222,284 @@ app.get('/api/cache/aggregated-stats', async (req, res) => {
   }
 });
 
+app.get('/api/events-by-type', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_INDEX,
+    size: 0,
+    body: { aggs: { by_type: { terms: { field: 'type.keyword', size: 10 } } } }
+  });
+  const buckets = resp.body.aggregations.by_type.buckets;
+  res.json({
+    labels: buckets.map(b => b.key),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/events-by-location', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_INDEX,
+    size: 0,
+    body: { aggs: { by_loc: { terms: { field: 'city.keyword', size: 10 } } } }
+  });
+  const buckets = resp.body.aggregations.by_loc.buckets;
+  res.json({
+    labels: buckets.map(b => b.key),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/events-timeline', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_INDEX,
+    size: 0,
+    body: {
+      aggs: {
+        timeline: {
+          date_histogram: {
+            field: 'timestamp',
+            calendar_interval: 'hour'
+          }
+        }
+      }
+    }
+  });
+  const buckets = resp.body.aggregations.timeline.buckets;
+  res.json({
+    labels: buckets.map(b => b.key_as_string),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/events-by-type', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_INDEX,
+    size: 0,
+    body: { aggs: { by_type: { terms: { field: 'type.keyword', size: 10 } } } }
+  });
+  const buckets = resp.body.aggregations.by_type.buckets;
+  res.json({
+    labels: buckets.map(b => b.key),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/events-by-location', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_INDEX,
+    size: 0,
+    body: { aggs: { by_loc: { terms: { field: 'city.keyword', size: 10 } } } }
+  });
+  const buckets = resp.body.aggregations.by_loc.buckets;
+  res.json({
+    labels: buckets.map(b => b.key),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/events-timeline', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_INDEX,
+    size: 0,
+    body: {
+      aggs: {
+        timeline: {
+          date_histogram: {
+            field: 'timestamp',
+            calendar_interval: 'hour'
+          }
+        }
+      }
+    }
+  });
+  const buckets = resp.body.aggregations.timeline.buckets;
+  res.json({
+    labels: buckets.map(b => b.key_as_string),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/cache/metrics', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_CACHE_INDEX,
+    size: 0,
+    body: {
+      aggs: {
+        hit_rate: { avg: { field: 'hit_rate' } },
+        memory_usage: { max: { field: 'memory_usage' } },
+        operations_per_sec: { avg: { field: 'operations_per_sec' } },
+        total_keys: { max: { field: 'total_keys' } }
+      }
+    }
+  });
+  const a = resp.body.aggregations;
+  res.json({
+    hit_rate: a.hit_rate.value,
+    memory_usage: a.memory_usage.value,
+    operations_per_sec: a.operations_per_sec.value,
+    total_keys: a.total_keys.value
+  });
+});
+
+app.get('/api/cache/hit-rate-history', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_CACHE_INDEX,
+    size: 0,
+    body: {
+      aggs: {
+        over_time: {
+          date_histogram: { field: 'timestamp', fixed_interval: '10m' },
+          aggs: { avg_hit_rate: { avg: { field: 'hit_rate' } } }
+        }
+      }
+    }
+  });
+  const buckets = resp.body.aggregations.over_time.buckets;
+  res.json({
+    labels: buckets.map(b => b.key_as_string),
+    datasets: [{ data: buckets.map(b => b.avg_hit_rate.value || 0) }]
+  });
+});
+
+app.get('/api/cache/memory-usage', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_CACHE_INDEX,
+    size: 0,
+    body: {
+      aggs: {
+        over_time: {
+          date_histogram: { field: 'timestamp', fixed_interval: '10m' },
+          aggs: { max_mem: { max: { field: 'memory_usage' } } }
+        }
+      }
+    }
+  });
+  const buckets = resp.body.aggregations.over_time.buckets;
+  res.json({
+    labels: buckets.map(b => b.key_as_string),
+    datasets: [{ data: buckets.map(b => b.max_mem.value || 0) }]
+  });
+});
+
+app.get('/api/cache/operations', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_CACHE_INDEX,
+    size: 0,
+    body: {
+      aggs: {
+        over_time: {
+          date_histogram: { field: 'timestamp', fixed_interval: '10m' },
+          aggs: { avg_ops: { avg: { field: 'operations_per_sec' } } }
+        }
+      }
+    }
+  });
+  const buckets = resp.body.aggregations.over_time.buckets;
+  res.json({
+    labels: buckets.map(b => b.key_as_string),
+    datasets: [{ data: buckets.map(b => b.avg_ops.value || 0) }]
+  });
+});
+
+app.get('/api/pig/status', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_PIG_INDEX,
+    size: 1,
+    body: { query: { term: { phase: 'summary' } } }
+  });
+  const hit = resp.body.hits.hits[0]?._source;
+  res.json(hit || {});
+});
+
+app.get('/api/pig/incidents-by-type', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_PIG_INDEX,
+    size: 0,
+    body: {
+      aggs: { by_type: { terms: { field: 'type.keyword', size: 10 } } }
+    }
+  });
+  const b = resp.body.aggregations.by_type.buckets;
+  res.json({
+    labels: b.map(x => x.key),
+    datasets: [{ data: b.map(x => x.doc_count) }]
+  });
+});
+
+app.get('/api/pig/incidents-by-city', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_PIG_INDEX,
+    size: 0,
+    body: {
+      aggs: { by_city: { terms: { field: 'city.keyword', size: 10 } } }
+    }
+  });
+  const b = resp.body.aggregations.by_city.buckets;
+  res.json({
+    labels: b.map(x => x.key),
+    datasets: [{ data: b.map(x => x.doc_count) }]
+  });
+});
+
+app.get('/api/pig/filtering-timeline', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  const resp = await client.search({
+    index: ES_PIG_INDEX,
+    size: 0,
+    body: {
+      query: { term: { phase: 'filtering' } },
+      aggs: {
+        over_time: {
+          date_histogram: { field: 'timestamp', fixed_interval: '1m' }
+        }
+      }
+    }
+  });
+  const buckets = resp.body.aggregations.over_time.buckets;
+  res.json({
+    labels: buckets.map(b => b.key_as_string),
+    datasets: [{ data: buckets.map(b => b.doc_count) }]
+  });
+});
+
+app.get('/api/metrics', async (req, res) => {
+  const client = new Client({ node: ES_HOST });
+  try {
+    const total = (await client.count({ index: ES_INDEX })).count;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const today = (await client.count({
+      index: ES_INDEX,
+      body: { query: { range: { timestamp: { gte: todayStart.toISOString() } } } }
+    })).count;
+    const alerts = (await client.count({
+      index: ES_INDEX,
+      body: { query: { term: { type: 'alert' } } }
+    })).count;
+    const jams = (await client.count({
+      index: ES_INDEX,
+      body: { query: { term: { type: 'jam' } } }
+    })).count;
+
+    res.json({ total, today, alerts, jams });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Error al calcular métricas' });
+  }
+});
+
 app.get('/api/cache/timeseries', async (req, res) => {
   try {
     if (!ES_HOST) {
@@ -227,7 +508,6 @@ app.get('/api/cache/timeseries', async (req, res) => {
     
     const client = new Client({ node: ES_HOST });
     
-    // Obtener datos de serie temporal con intervalos de tiempo
     const response = await client.search({
       index: ES_CACHE_INDEX,
       size: 0,
@@ -329,7 +609,6 @@ app.get('/api/cache/raw-search', async (req, res) => {
   }
 });
 
-// Pig API endpoints
 app.get('/api/pig/analysis-by-type', async (req, res) => {
   try {
     if (!ES_HOST) {

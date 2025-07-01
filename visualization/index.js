@@ -27,7 +27,7 @@ async function bulkIndex(client, docs) {
   const body = docs.flatMap(doc => [{ index: { _index: ES_INDEX, _id: doc.eventId } }, doc]);
   const { errors, items } = await client.bulk({ refresh: true, body });
   if (errors) {
-    console.error('Algunos documentos fallaron al indexar:', items.filter(i => i.index && i.index.error));
+    console.error('Algunos documentoss fallaron al indexar:', items.filter(i => i.index && i.index.error));
   } else {
     console.log(`Indexados ${docs.length} eventos en "${ES_INDEX}".`);
   }
