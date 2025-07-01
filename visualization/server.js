@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 const ES_HOST  = process.env.ELASTICSEARCH_HOST;
 const ES_INDEX = process.env.ES_INDEX || 'waze-events';
 const ES_CACHE_INDEX = process.env.ES_CACHE_INDEX || 'waze-cache-metrics';
+const ES_PIG_INDEX = process.env.ES_PIG_INDEX || 'waze-pig-metrics';
 const DB_PATH  = '/db/eventos.db';
 const PORT = process.env.PORT || 3000;
 
@@ -130,6 +131,11 @@ app.get('/', (req, res) => {
 // Cache Dashboard routes
 app.get('/cache', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'cache-dashboard.html'));
+});
+
+// Pig Dashboard routes
+app.get('/pig', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pig-dashboard.html'));
 });
 
 // Cache API endpoints
@@ -320,6 +326,253 @@ app.get('/api/cache/raw-search', async (req, res) => {
   } catch (error) {
     console.error('Error searching cache data:', error);
     res.status(500).json({ error: 'Error al buscar datos de caché' });
+  }
+});
+
+// Pig API endpoints
+app.get('/api/pig/analysis-by-type', async (req, res) => {
+  try {
+    if (!ES_HOST) {
+      return res.status(500).json({ error: 'Elasticsearch no configurado' });
+    }
+    
+    const client = new Client({ node: ES_HOST });
+    
+    const response = await client.search({
+      index: ES_PIG_INDEX,
+      size: 100,
+      body: {
+        query: {
+          bool: {
+            must: [
+              { term: { phase: 'analysis' } },
+              { exists: { field: 'frequency' } }
+            ]
+          }
+        },
+        sort: [{ frequency: { order: 'desc' } }]
+      }
+    });
+    
+    const hits = response.body?.hits?.hits || response.hits?.hits || [];
+    const data = hits.map(hit => hit._source);
+    
+    res.json({ data });
+    
+  } catch (error) {
+    console.error('Error fetching pig analysis by type:', error);
+    res.status(500).json({ error: 'Error al obtener análisis por tipo de Pig' });
+  }
+});
+
+app.get('/api/pig/analysis-by-city', async (req, res) => {
+  try {
+    if (!ES_HOST) {
+      return res.status(500).json({ error: 'Elasticsearch no configurado' });
+    }
+    
+    const client = new Client({ node: ES_HOST });
+    
+    const response = await client.search({
+      index: ES_PIG_INDEX,
+      size: 100,
+      body: {
+        query: {
+          bool: {
+            must: [
+              { term: { phase: 'analysis' } },
+              { exists: { field: 'incidents' } }
+            ]
+          }
+        },
+        sort: [{ incidents: { order: 'desc' } }]
+      }
+    });
+    
+    const hits = response.body?.hits?.hits || response.hits?.hits || [];
+    const data = hits.map(hit => hit._source);
+    
+    res.json({ data });
+    
+  } catch (error) {
+    console.error('Error fetching pig analysis by city:', error);
+    res.status(500).json({ error: 'Error al obtener análisis por ciudad de Pig' });
+  }
+});
+
+app.get('/api/pig/summary', async (req, res) => {
+  try {
+    if (!ES_HOST) {
+      return res.status(500).json({ error: 'Elasticsearch no configurado' });
+    }
+    
+    const client = new Client({ node: ES_HOST });
+    
+    const response = await client.search({
+      index: ES_PIG_INDEX,
+      size: 1,
+      body: {
+        query: {
+          term: { phase: 'summary' }
+        }
+      }
+    });
+    
+    const hits = response.body?.hits?.hits || response.hits?.hits || [];
+    const data = hits.length > 0 ? hits[0]._source : null;
+    
+    res.json({ data });
+    
+  } catch (error) {
+    console.error('Error fetching pig summary:', error);
+    res.status(500).json({ error: 'Error al obtener resumen de Pig' });
+  }
+});
+
+app.get('/api/pig/filtering-timeseries', async (req, res) => {
+  try {
+    if (!ES_HOST) {
+      return res.status(500).json({ error: 'Elasticsearch no configurado' });
+    }
+    
+    const client = new Client({ node: ES_HOST });
+    
+    const response = await client.search({
+      index: ES_PIG_INDEX,
+      size: 0,
+      body: {
+        query: {
+          term: { phase: 'filtering' }
+        },
+        aggs: {
+          operations_over_time: {
+            date_histogram: {
+              field: 'timestamp',
+              fixed_interval: '1m'
+            }
+          }
+        }
+      }
+    });
+    
+    const aggregations = response.body?.aggregations || response.aggregations;
+    const buckets = aggregations?.operations_over_time?.buckets || [];
+    
+    const data = buckets.map(bucket => ({
+      timestamp: bucket.key_as_string,
+      count: bucket.doc_count
+    }));
+    
+    res.json({ data });
+    
+  } catch (error) {
+    console.error('Error fetching pig filtering timeseries:', error);
+    res.status(500).json({ error: 'Error al obtener serie temporal de filtrado de Pig' });
+  }
+});
+
+app.get('/api/pig/top-streets', async (req, res) => {
+  try {
+    if (!ES_HOST) {
+      return res.status(500).json({ error: 'Elasticsearch no configurado' });
+    }
+    
+    const client = new Client({ node: ES_HOST });
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const response = await client.search({
+      index: ES_PIG_INDEX,
+      size: 0,
+      body: {
+        query: {
+          bool: {
+            must: [
+              { term: { phase: 'filtering' } },
+              { exists: { field: 'street' } }
+            ]
+          }
+        },
+        aggs: {
+          top_streets: {
+            terms: {
+              field: 'street.keyword',
+              size: limit,
+              order: { _count: 'desc' }
+            },
+            aggs: {
+              cities: {
+                terms: {
+                  field: 'city',
+                  size: 5
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    
+    const aggregations = response.body?.aggregations || response.aggregations;
+    const buckets = aggregations?.top_streets?.buckets || [];
+    
+    const data = buckets.map(bucket => ({
+      street: bucket.key,
+      count: bucket.doc_count,
+      cities: bucket.cities.buckets.map(cityBucket => ({
+        city: cityBucket.key,
+        count: cityBucket.doc_count
+      }))
+    }));
+    
+    res.json({ data });
+    
+  } catch (error) {
+    console.error('Error fetching pig top streets:', error);
+    res.status(500).json({ error: 'Error al obtener top calles de Pig' });
+  }
+});
+
+app.get('/api/pig/raw-search', async (req, res) => {
+  try {
+    if (!ES_HOST) {
+      return res.status(500).json({ error: 'Elasticsearch no configurado' });
+    }
+    
+    const client = new Client({ node: ES_HOST });
+    const { phase, type, city, limit = 100 } = req.query;
+    
+    const query = {
+      bool: {
+        must: []
+      }
+    };
+    
+    if (phase) {
+      query.bool.must.push({ term: { phase: phase } });
+    }
+    
+    if (type) {
+      query.bool.must.push({ term: { type: type } });
+    }
+    
+    if (city) {
+      query.bool.must.push({ term: { city: city } });
+    }
+    
+    const response = await client.search({
+      index: ES_PIG_INDEX,
+      size: limit,
+      sort: [{ timestamp: { order: 'desc' } }],
+      body: {
+        query: query.bool.must.length > 0 ? query : { match_all: {} }
+      }
+    });
+    
+    res.json(response.body?.hits || response.hits);
+    
+  } catch (error) {
+    console.error('Error searching pig data:', error);
+    res.status(500).json({ error: 'Error al buscar datos de Pig' });
   }
 });
 

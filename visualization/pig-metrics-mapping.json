@@ -1,0 +1,112 @@
+{
+  "mappings": {
+    "properties": {
+      "eventId": {
+        "type": "keyword"
+      },
+      "type": {
+        "type": "keyword",
+        "fields": {
+          "text": {
+            "type": "text"
+          }
+        }
+      },
+      "city": {
+        "type": "keyword",
+        "fields": {
+          "text": {
+            "type": "text"
+          }
+        }
+      },
+      "street": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      },
+      "severity": {
+        "type": "integer"
+      },
+      "confidence": {
+        "type": "integer"
+      },
+      "phase": {
+        "type": "keyword"
+      },
+      "timestamp": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      },
+      "id": {
+        "type": "long"
+      },
+      "collection": {
+        "type": "keyword"
+      },
+      "reportBy": {
+        "type": "keyword",
+        "null_value": "unknown"
+      },
+      "count": {
+        "type": "long"
+      },
+      "frequency": {
+        "type": "long"
+      },
+      "incidents": {
+        "type": "long"
+      },
+      "analysis_type": {
+        "type": "keyword"
+      },
+      "total_types": {
+        "type": "integer"
+      },
+      "total_cities": {
+        "type": "integer"
+      },
+      "total_incidents": {
+        "type": "long"
+      },
+      "most_frequent_type": {
+        "type": "keyword"
+      },
+      "most_frequent_count": {
+        "type": "long"
+      },
+      "most_active_city": {
+        "type": "keyword"
+      },
+      "most_active_count": {
+        "type": "long"
+      },
+      "average_incidents_per_city": {
+        "type": "float"
+      },
+      "analysis_files": {
+        "type": "keyword"
+      },
+      "unique_incident_types": {
+        "type": "integer"
+      },
+      "unique_cities": {
+        "type": "integer"
+      },
+      "total_incidents_processed": {
+        "type": "long"
+      },
+      "operation_number": {
+        "type": "long"
+      }
+    }
+  },
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s"
+  }
+}

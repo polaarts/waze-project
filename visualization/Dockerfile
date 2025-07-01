@@ -17,5 +17,8 @@ RUN npm rebuild better-sqlite3
 ENV NODE_ENV=production
 ENV ELASTICSEARCH_HOST=http://elasticsearch:9200
 ENV ES_INDEX=waze-events
+ENV ES_CACHE_INDEX=waze-cache-metrics
+ENV ES_PIG_INDEX=waze-pig-metrics
+ENV PORT=3000
 
-CMD ["node", "index.js"]
+CMD ["node", "server.js"]

@@ -81,14 +81,20 @@ services:
       - elasticsearch
       - cache
     volumes:
-      - ./db:/db               
+      - ./db:/db
+      - ./pig/output:/pig/output:ro
     environment:
       - NODE_ENV=production
       - ELASTICSEARCH_HOST=http://elasticsearch:9200
       - ES_INDEX=waze-events
+      - ES_CACHE_INDEX=waze-cache-metrics
+      - ES_PIG_INDEX=waze-pig-metrics
+      - PORT=3000
+    ports:
+      - "3000:3000"
     networks:
       - waze-network
-    command: ["node", "index.js"]
+    command: ["node", "server.js"]
 
 volumes:
   redis-data:
